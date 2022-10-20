@@ -1,9 +1,4 @@
 const std = @import("std");
-const opt = @import("build_options").entry;
-
-comptime {
-    asm (@embedFile(opt));
-}
 
 const bool_f = 0x1f;
 const bool_t = 0x2f;
@@ -17,7 +12,7 @@ const ch_shift = 8;
 
 const stack_size = 4096;
 
-extern fn scheme_entry([*c]u64, u64) u64;
+extern fn scheme_entry(stack: [*c]u64, size: u64) u64;
 
 pub fn main() anyerror!void {
     const stdout = std.io.getStdOut().writer();

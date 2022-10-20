@@ -11,14 +11,10 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const opt = b.addOptions();
-
-    opt.addOption([]const u8, "entry", b.option([]const u8, "entry", "Assembly entry point") orelse "foo");
-
     const exe = b.addExecutable("runtime", "src/main.zig");
+    exe.addAssemblyFile(b.option([]const u8, "entry", "Assembly entry point").?);
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    exe.addOptions("build_options", opt);
     exe.install();
 
     const run_cmd = exe.run();

@@ -22,7 +22,7 @@ class MySuite extends munit.FunSuite {
   }
 
   def checkOutput(program: Exp, expected: String): Unit = {
-    assertEquals(getOutput(compileProgram(program)), expected)
+    assertEquals(compileProgram(program).map(getOutput), Right(expected))
   }
 
   test("fixnum") {
@@ -58,17 +58,21 @@ class MySuite extends munit.FunSuite {
 
   test("inc") {
     Seq(
-      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(10))) -> "11\n",
-      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(0))) -> "1\n",
-      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(-1))) -> "0\n"
+      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(10))) -> "11\n",
+      Exp.UnOp(
+        UnPrim.Inc,
+        Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(10)))
+      ) -> "12\n",
+      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(0))) -> "1\n",
+      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(-1))) -> "0\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("dec") {
     Seq(
-      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(10))) -> "9\n",
-      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(1))) -> "0\n",
-      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(0))) -> "-1\n"
+      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(10))) -> "9\n",
+      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(1))) -> "0\n",
+      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(0))) -> "-1\n"
     ).foreach(checkOutput.tupled)
   }
 
@@ -104,14 +108,14 @@ class MySuite extends munit.FunSuite {
   test("add") {
 
     Seq(
-      Exp.BPrim(
+      Exp.BinOp(
         BinPrim.Plus,
         Exp.CExp(Const.Fixnum(3)),
         Exp.CExp(Const.Fixnum(4))
       ) -> "7\n",
-      Exp.BPrim(
+      Exp.BinOp(
         BinPrim.Plus,
-        Exp.BPrim(
+        Exp.BinOp(
           BinPrim.Plus,
           Exp.CExp(Const.Fixnum(3)),
           Exp.CExp(Const.Fixnum(4))
@@ -120,5 +124,16 @@ class MySuite extends munit.FunSuite {
       ) -> "16\n"
     ).foreach(checkOutput.tupled)
 
+  }
+
+  test("let") {
+    Seq(
+      Exp.Let(List(), Exp.CExp(Const.True)) -> "#t\n",
+      Exp.Let(List("x" -> Exp.CExp(Const.Fixnum(10))), Exp.Var("x")) -> "10\n",
+      Exp.Let(List(
+        "x" -> Exp.CExp(Const.Fixnum(10)),
+        "y" -> Exp.BinOp(BinPrim.Plus, Exp.Var("x"), Exp.Var("x"))
+      ), Exp.Var("y")) -> "20\n"
+    ).foreach(checkOutput.tupled)
   }
 }
