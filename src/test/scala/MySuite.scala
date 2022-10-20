@@ -8,6 +8,7 @@ class MySuite extends munit.FunSuite {
 
   def getOutput(program: String): String = {
 
+    print(program)
     val p = Files.createTempFile("program", ".s")
     val file = p.toFile()
     val bw = new FileWriter(file)
@@ -19,7 +20,6 @@ class MySuite extends munit.FunSuite {
       new File("./runtime")
     )
     cmd.!!
-
   }
 
   def checkOutput(program: Exp, expected: String): Unit = {
@@ -27,7 +27,6 @@ class MySuite extends munit.FunSuite {
   }
 
   test("fixnum") {
-
     Seq(
       Exp.CExp(Const.Fixnum(0)) -> "0\n",
       Exp.CExp(Const.Fixnum(1)) -> "1\n",
@@ -37,6 +36,13 @@ class MySuite extends munit.FunSuite {
       Exp.CExp(Const.Fixnum(2736)) -> "2736\n",
       Exp.CExp(Const.Fixnum(536870911)) -> "536870911\n",
       Exp.CExp(Const.Fixnum(-536870912)) -> "-536870912\n"
+    ).foreach(checkOutput.tupled)
+  }
+
+  test("char") {
+    Seq(
+      Exp.CExp(Const.Ch('a')) -> "#\\a\n",
+      Exp.CExp(Const.Ch('0')) -> "#\\0\n"
     ).foreach(checkOutput.tupled)
 
   }
@@ -49,5 +55,21 @@ class MySuite extends munit.FunSuite {
       Exp.CExp(Const.Null) -> "()\n"
     ).foreach(checkOutput.tupled)
 
+  }
+
+  test("inc") {
+    Seq(
+      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(10))) -> "11\n",
+      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(0))) -> "1\n",
+      Exp.UPrim(UnPrim.Inc, Exp.CExp(Const.Fixnum(-1))) -> "0\n"
+    ).foreach(checkOutput.tupled)
+  }
+
+  test("dec") {
+    Seq(
+      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(10))) -> "9\n",
+      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(1))) -> "0\n",
+      Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(0))) -> "-1\n"
+    ).foreach(checkOutput.tupled)
   }
 }
