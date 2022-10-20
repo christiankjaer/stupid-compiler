@@ -8,7 +8,6 @@ class MySuite extends munit.FunSuite {
 
   def getOutput(program: String): String = {
 
-    print(program)
     val p = Files.createTempFile("program", ".s")
     val file = p.toFile()
     val bw = new FileWriter(file)
