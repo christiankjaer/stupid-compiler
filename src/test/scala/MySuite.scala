@@ -22,7 +22,7 @@ class MySuite extends munit.FunSuite {
   }
 
   def checkOutput(program: Exp, expected: String): Unit = {
-    assertEquals(getOutput(compile(program)), expected)
+    assertEquals(getOutput(compileProgram(program)), expected)
   }
 
   test("fixnum") {
@@ -90,10 +90,35 @@ class MySuite extends munit.FunSuite {
         Exp.CExp(Const.Fixnum(42))
       ) -> "42\n",
       Exp.If(
-        Exp.If(Exp.CExp(Const.False), Exp.CExp(Const.False), Exp.CExp(Const.True)), // True
+        Exp.If(
+          Exp.CExp(Const.False),
+          Exp.CExp(Const.False),
+          Exp.CExp(Const.True)
+        ), // True
         Exp.CExp(Const.Fixnum(1337)),
         Exp.CExp(Const.Fixnum(42))
       ) -> "1337\n"
     ).foreach(checkOutput.tupled)
+  }
+
+  test("add") {
+
+    Seq(
+      Exp.BPrim(
+        BinPrim.Plus,
+        Exp.CExp(Const.Fixnum(3)),
+        Exp.CExp(Const.Fixnum(4))
+      ) -> "7\n",
+      Exp.BPrim(
+        BinPrim.Plus,
+        Exp.BPrim(
+          BinPrim.Plus,
+          Exp.CExp(Const.Fixnum(3)),
+          Exp.CExp(Const.Fixnum(4))
+        ),
+        Exp.CExp(Const.Fixnum(9))
+      ) -> "16\n"
+    ).foreach(checkOutput.tupled)
+
   }
 }

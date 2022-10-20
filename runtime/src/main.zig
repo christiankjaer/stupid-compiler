@@ -15,12 +15,17 @@ const ch_mask = 0xFF;
 const ch_tag = 0x0F;
 const ch_shift = 8;
 
-extern fn scheme_entry() u64;
+const stack_size = 4096;
+
+extern fn scheme_entry([*c]u64, u64) u64;
 
 pub fn main() anyerror!void {
     const stdout = std.io.getStdOut().writer();
+    const allocator = std.heap.page_allocator;
+    const stack = try allocator.alloc(u64, stack_size);
+    defer allocator.free(stack);
 
-    const res = scheme_entry();
+    const res = scheme_entry(@ptrCast([*c]u64, stack), stack_size);
 
     if (res & fx_mask == fx_tag) {
         const shifted = @bitCast(i64, res) >> fx_shift;
