@@ -71,4 +71,29 @@ class MySuite extends munit.FunSuite {
       Exp.UPrim(UnPrim.Dec, Exp.CExp(Const.Fixnum(0))) -> "-1\n"
     ).foreach(checkOutput.tupled)
   }
+
+  test("if") {
+    Seq(
+      Exp.If(
+        Exp.CExp(Const.True),
+        Exp.CExp(Const.Fixnum(1337)),
+        Exp.CExp(Const.Fixnum(42))
+      ) -> "1337\n",
+      Exp.If(
+        Exp.CExp(Const.Null),
+        Exp.CExp(Const.Fixnum(1337)),
+        Exp.CExp(Const.Fixnum(42))
+      ) -> "1337\n",
+      Exp.If(
+        Exp.CExp(Const.False),
+        Exp.CExp(Const.Fixnum(1337)),
+        Exp.CExp(Const.Fixnum(42))
+      ) -> "42\n",
+      Exp.If(
+        Exp.If(Exp.CExp(Const.False), Exp.CExp(Const.False), Exp.CExp(Const.True)), // True
+        Exp.CExp(Const.Fixnum(1337)),
+        Exp.CExp(Const.Fixnum(42))
+      ) -> "1337\n"
+    ).foreach(checkOutput.tupled)
+  }
 }
