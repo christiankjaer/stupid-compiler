@@ -5,6 +5,7 @@ lazy val root = project
   .settings(
     name := "inc",
     version := "0.1.0-SNAPSHOT",
+    scalacOptions += "-Ykind-projector:underscores",
 
     scalaVersion := scala3Version,
 
