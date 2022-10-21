@@ -4,7 +4,7 @@ import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.File
 
-class MySuite extends munit.FunSuite {
+class CompilerSuite extends munit.FunSuite {
 
   def getOutput(program: String): String = {
 
