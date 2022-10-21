@@ -76,6 +76,29 @@ class MySuite extends munit.FunSuite {
     ).foreach(checkOutput.tupled)
   }
 
+  test("conv") {
+    Seq(
+      Exp.UnOp(UnPrim.FixnumToChar, Exp.CExp(Const.Fixnum(65))) -> "#\\A\n",
+      Exp.UnOp(UnPrim.CharToFixnum, Exp.CExp(Const.Ch('a'))) -> "97\n"
+    ).foreach(checkOutput.tupled)
+  }
+
+  test("test") {
+    Seq(
+      Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(65))) -> "#f\n",
+      Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
+      Exp.UnOp(UnPrim.IsNull, Exp.CExp(Const.Fixnum(0))) -> "#f\n",
+      Exp.UnOp(UnPrim.IsNull, Exp.CExp(Const.Null)) -> "#t\n",
+      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.Null)) -> "#f\n",
+      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.True)) -> "#t\n",
+      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.False)) -> "#t\n",
+      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(65))) -> "#t\n",
+      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
+      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Null)) -> "#f\n",
+      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Ch('b'))) -> "#f\n"
+    ).foreach(checkOutput.tupled)
+  }
+
   test("if") {
     Seq(
       Exp.If(
@@ -105,7 +128,7 @@ class MySuite extends munit.FunSuite {
     ).foreach(checkOutput.tupled)
   }
 
-  test("add") {
+  test("add/sub") {
 
     Seq(
       Exp.BinOp(
@@ -130,10 +153,13 @@ class MySuite extends munit.FunSuite {
     Seq(
       Exp.Let(List(), Exp.CExp(Const.True)) -> "#t\n",
       Exp.Let(List("x" -> Exp.CExp(Const.Fixnum(10))), Exp.Var("x")) -> "10\n",
-      Exp.Let(List(
-        "x" -> Exp.CExp(Const.Fixnum(10)),
-        "y" -> Exp.BinOp(BinPrim.Plus, Exp.Var("x"), Exp.Var("x"))
-      ), Exp.Var("y")) -> "20\n"
+      Exp.Let(
+        List(
+          "x" -> Exp.CExp(Const.Fixnum(10)),
+          "y" -> Exp.BinOp(BinPrim.Plus, Exp.Var("x"), Exp.Var("x"))
+        ),
+        Exp.Var("y")
+      ) -> "20\n"
     ).foreach(checkOutput.tupled)
   }
 }

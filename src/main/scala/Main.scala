@@ -2,6 +2,20 @@ import cats.syntax.all.*
 import cats.data.{EitherT, State}
 
 val wordSize = 8
+val charShift = 8
+val charTag = 0x0f
+
+val fixShift = 2
+val fixMask = 0x3
+val fixTag = 0x0
+
+val falseVal = 0x2f
+val trueVal = 0x6f
+val nullVal = 0x3f
+
+val boolShift = 6
+val boolMask = 0xbf
+val boolTag = 0x2f
 
 enum UnPrim {
   case Inc, Dec, CharToFixnum, FixnumToChar, IsZero, IsNull, Not, IsFixnum,
@@ -40,15 +54,20 @@ type C[T] = EitherT[[x] =>> State[LabelCounter, x], Error, T]
 
 val prelude =
   """    .text
-    |    .globl    scheme_entry
-    |    .type     scheme_entry, @function
-    |scheme_entry:""".stripMargin('|')
+    |    .globl    program_entry
+    |    .type     program_entry, @function
+    |program_entry:""".stripMargin('|')
 
-// We move the stack (pointer is first argument (%rdi), size is second argument(%rsi)) into %rbx
-val prepareStack =
-  s"    leaq (%rdi, %rsi, ${wordSize}), %rbx"
+// We move the stack (pointer is first argument (%rdi), size is second argument(%rsi)) into %rsp
+val prepareStack = List(
+  s"    movq %rsp, %rcx", // Save original stack
+  s"    leaq (%rdi, %rsi, ${wordSize}), %rsp"
+)
 
-val end = "    ret"
+val end = List(
+  "    movq %rcx, %rsp", // Restore original stack
+  "    ret"
+)
 
 def makeLabel: C[Label] = for {
   lab <- EitherT.liftF(State.get)
@@ -56,28 +75,58 @@ def makeLabel: C[Label] = for {
 } yield s"L_$lab"
 
 def constToImm(c: Const): String = c match
-  case Const.Fixnum(n) => s"$$${n << 2}"
-  case Const.False     => "$0x1F"
-  case Const.True      => "$0x2F"
-  case Const.Null      => "$0x3F"
-  case Const.Ch(c)     => s"$$0x${c.toInt.toHexString}0F"
+  case Const.Fixnum(n) => s"$$${n << fixShift}"
+  case Const.False     => s"$$${falseVal}"
+  case Const.True      => s"$$${trueVal}"
+  case Const.Null      => s"$$${nullVal}"
+  case Const.Ch(c)     => s"$$${(c << charShift) | charTag}"
 
-def compileUnPrim(p: UnPrim): Program = p match
-  case UnPrim.Inc =>
-    List(s"    addq ${constToImm(Const.Fixnum(1))}, %rax")
-  case UnPrim.Dec =>
-    List(s"    subq ${constToImm(Const.Fixnum(1))}, %rax")
-  case _ => sys.error("Not implemented")
+def compileUnPrim(p: UnPrim): Program = {
+  val setBoolean = List(
+    "    sete %al",
+    "    movzbq %al, %rax",
+    s"    salq $$${boolShift}, %rax",
+    s"    orq $$${boolTag}, %rax"
+  )
+  p match
+    case UnPrim.Inc =>
+      List(s"    addq ${constToImm(Const.Fixnum(1))}, %rax")
+    case UnPrim.Dec =>
+      List(s"    subq ${constToImm(Const.Fixnum(1))}, %rax")
+    case UnPrim.CharToFixnum =>
+      List(s"    sarq $$${charShift - fixShift}, %rax")
+    case UnPrim.FixnumToChar =>
+      List(
+        s"    salq $$${charShift - fixShift}, %rax",
+        s"    orq $$${charTag}, %rax"
+      )
+    case UnPrim.IsZero =>
+      "    cmp $0, %rax" :: setBoolean
+    case UnPrim.IsNull =>
+      s"    cmp $$${nullVal}, %rax" :: setBoolean
+    case UnPrim.IsBool =>
+      List(
+        s"    and $$${boolMask}, %rax",
+        s"    cmp $$${boolTag}, %rax"
+      ) ++ setBoolean
+    case UnPrim.IsFixnum =>
+      List(
+        s"    andq $$${fixMask}, %rax",
+        s"    cmp $$${fixTag}, %rax"
+      ) ++ setBoolean
+
+    case _ => sys.error("Not implemented")
+}
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): Program = p match
   case BinPrim.Plus =>
-    List(s"    addq ${stackIdx}(%rbx), %rax")
+    List(s"    addq ${stackIdx}(%rsp), %rax")
 
 def compileBinOp(env: Env, stackIdx: Int, p: Exp.BinOp): C[Program] = for {
   arg1 <- compileExp(env, stackIdx, p.e1)
   arg2 <- compileExp(env, stackIdx - wordSize, p.e2)
 } yield arg1 ++ List(
-  s"    movq %rax, ${stackIdx}(%rbx)"
+  s"    movq %rax, ${stackIdx}(%rsp)"
 ) ++ arg2 ++ compileBinPrim(stackIdx, p.primOp)
 
 def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): C[Program] = for {
@@ -97,7 +146,7 @@ def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): C[Program] = for {
 
 def compileVar(env: Env, x: Name): Either[Error, Program] = env.get(x) match
   case None      => Left(s"Unknown variable '$x'")
-  case Some(idx) => Right(List(s"    movq ${idx}(%rbx), %rax"))
+  case Some(idx) => Right(List(s"    movq ${idx}(%rsp), %rax"))
 
 def compileLet(
     env: Env,
@@ -115,7 +164,7 @@ def compileLet(
         bs,
         body
       )
-    } yield lCode ++ List(s"    movq %rax, ${stackIdx}(%rbx)") ++ restCode
+    } yield lCode ++ List(s"    movq %rax, ${stackIdx}(%rsp)") ++ restCode
 
 def compileExp(env: Env, stackIdx: Int, e: Exp): C[Program] = e match
   case Exp.Var(x)     => EitherT.fromEither(compileVar(env, x))
@@ -131,9 +180,9 @@ def compileProgram(e: Exp): Either[Error, String] = for {
     .value
 } yield List(
   prelude,
-  prepareStack,
+  prepareStack.mkString("\n"),
   expCode.mkString("\n"),
-  end
+  end.mkString("\n")
 )
   .mkString("\n")
 

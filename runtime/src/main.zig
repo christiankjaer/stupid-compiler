@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const bool_f = 0x1f;
-const bool_t = 0x2f;
+const bool_f = 0x2f;
+const bool_t = 0x6f;
 const null_t = 0x3f;
 const fx_mask = 0x03;
 const fx_tag = 0x00;
@@ -12,7 +12,7 @@ const ch_shift = 8;
 
 const stack_size = 4096;
 
-extern fn scheme_entry(stack: [*c]u64, size: u64) u64;
+extern fn program_entry(stack: [*c]u64, size: u64) u64;
 
 pub fn main() anyerror!void {
     const stdout = std.io.getStdOut().writer();
@@ -20,7 +20,7 @@ pub fn main() anyerror!void {
     const stack = try allocator.alloc(u64, stack_size);
     defer allocator.free(stack);
 
-    const res = scheme_entry(@ptrCast([*c]u64, stack), stack_size);
+    const res = program_entry(@ptrCast([*c]u64, stack), stack_size);
 
     if (res & fx_mask == fx_tag) {
         const shifted = @bitCast(i64, res) >> fx_shift;
