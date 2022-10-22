@@ -20,4 +20,11 @@ enum Exp {
   case BinOp(primOp: BinPrim, e1: Exp, e2: Exp)
   case If(test: Exp, thenB: Exp, elseB: Exp)
   case Let(bindings: List[(Name, Exp)], body: Exp)
+  case App(lvar: Name, args: List[Exp])
 }
+
+final case class Lambda(formals: List[Name], body: Exp)
+
+final case class FunDef(lvar: Name, lam: Lambda)
+
+final case class Program(funs: List[FunDef], body: Exp)

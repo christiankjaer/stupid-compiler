@@ -1,29 +1,5 @@
-import sys.process.*
-import java.nio.file.Files
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.File
+class ExpSuite extends CompilerSuite {
 
-class CompilerSuite extends munit.FunSuite {
-
-  def getOutput(program: String): String = {
-
-    val p = Files.createTempFile("program", ".s")
-    val file = p.toFile()
-    val bw = new FileWriter(file)
-    bw.append(program)
-    bw.close()
-
-    val cmd = Process(
-      Seq("zig", "build", "run", s"-Dentry=${p.toString}"),
-      new File("./runtime")
-    )
-    cmd.!!
-  }
-
-  def checkOutput(program: Exp, expected: String): Unit = {
-    assertEquals(compileProgram(program).map(getOutput), Right(expected))
-  }
 
   test("fixnum") {
     Seq(
