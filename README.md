@@ -13,7 +13,7 @@ in add(42, 1337)
 You can compile it with sbt (requires zig on the path)
 
 ```
-$ sbt run "examples/add.stupid add"
+$ sbt "run examples/add.stupid add"
 $ ./add
 1379
 ```
