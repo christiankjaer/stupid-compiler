@@ -20,53 +20,20 @@ class LetRecSuite extends CompilerSuite {
   }
 
   test("add") {
-    val program = Program(
-      List(
-        FunDef(
-          "g",
-          List("x"),
-          Exp.Var("x")
-        ),
-        FunDef(
-          "f",
-          List("x", "y"),
-          Exp.BinOp(
-            BinPrim.Plus,
-            Exp.App("g", List(Exp.Var("y"))),
-            Exp.Var("x")
-          )
-        )
-      ),
-      Exp.Let(
-        List("x" -> Exp.CExp(Const.Fixnum(3))),
-        Exp.App("f", List(Exp.Var("x"), Exp.CExp(Const.Fixnum(5))))
-      )
-    )
-    checkOutput(program, "8\n")
+    val p =
+      """|fun g(x) = x
+         |fun f(x, y) = g(y) + x
+         |in let x = 3
+         |in f(x, 5)""".stripMargin
+    checkOutput(p, "8\n")
   }
 
   test("recursion") {
-    val program = Program(
-      List(
-        FunDef(
-          "add",
-          List("x", "y"),
-          Exp.If(
-            Exp.UnOp(UnPrim.IsZero, Exp.Var("y")),
-            Exp.Var("x"),
-            Exp.App(
-              "add",
-              List(
-                Exp.UnOp(UnPrim.Inc, Exp.Var("x")),
-                Exp.UnOp(UnPrim.Dec, Exp.Var("y"))
-              )
-            )
-          )
-        )
-      ),
-      Exp.App("add", List(Exp.CExp(Const.Fixnum(3)), Exp.CExp(Const.Fixnum(7))))
-    )
-    checkOutput(program, "10\n")
+    val p =
+      """|fun add(x, y) = if is_zero(y) then x else add(x+1, y-1)
+         |in add(100, 400)
+         |""".stripMargin
+    checkOutput(p, "500\n")
 
   }
   test("addfun") {

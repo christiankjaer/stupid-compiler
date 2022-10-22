@@ -58,6 +58,10 @@ class ExpSuite extends CompilerSuite {
 
   test("test") {
     Seq(
+      "is_zero(65)" -> "#f\n",
+      "is_unit(())" -> "#t\n"
+    ).foreach(checkOutput.tupled)
+    Seq(
       Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(65))) -> "#f\n",
       Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
       Exp.UnOp(UnPrim.IsUnit, Exp.CExp(Const.Fixnum(0))) -> "#f\n",

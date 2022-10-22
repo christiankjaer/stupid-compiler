@@ -23,6 +23,8 @@ val boolTag = 0x2f
 enum Binding {
   case StackPos(i: Int)
   case ProgramLabel(l: Label)
+  case UnaryBuiltin(f: Exp => Exp)
+  case BinaryBuiltin(f: (Exp, Exp) => Exp)
 }
 
 type Instruction = String
@@ -56,6 +58,14 @@ val entry = List(
 val end = List(
   "    movq %rcx, %rsp", // Restore original stack
   "    ret"
+)
+
+val baseEnv: Map[Name, Binding] = Map(
+  "is_zero" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsZero, e)),
+  "is_unit" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsUnit, e)),
+  "is_fixnum" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsFixnum, e)),
+  "is_bool" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsBool, e)),
+  "is_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsChar, e))
 )
 
 def makeLabel: C[Label] = for {
@@ -169,7 +179,7 @@ def compileLet(
 def compileApp(
     env: Env,
     stackIdx: Int,
-    lvar: Name,
+    label: Label,
     args: List[Exp]
 ): C[List[Instruction]] = {
 
@@ -185,13 +195,10 @@ def compileApp(
   for {
 
     argsCode <- compileArgs(stackIdx - wordSize, args)
-    lab <- env.get(lvar) match
-      case Some(Binding.ProgramLabel(l)) => pure(l)
-      case _                             => error("function $lvar not defined")
 
   } yield argsCode ++ List(
     s"    addq $$${stackIdx + wordSize}, %rsp", // Adjust stack pointer to be above local variables
-    s"    call $lab # call ${lvar}",
+    s"    call $label",
     s"    addq $$${-(stackIdx + wordSize)}, %rsp" // Readjust
   )
 
@@ -221,7 +228,7 @@ def compileProgram(p: Program): C[List[Instruction]] = {
 
   for {
     defs <- topDefs
-    initEnv = defs.map(x => x.fd.lvar -> Binding.ProgramLabel(x.label)).toMap
+    initEnv = baseEnv ++ defs.map(x => x.fd.lvar -> Binding.ProgramLabel(x.label)).toMap
     funs <- defs
       .traverse(td => compileTopDef(initEnv, td))
       .map(_.flatten)
@@ -237,7 +244,12 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
   case Exp.UnOp(p, e) => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
   case binop: Exp.BinOp    => compileBinOp(env, stackIdx, binop)
   case Exp.Let(xs, body)   => compileLet(env, stackIdx, xs, body)
-  case Exp.App(lvar, args) => compileApp(env, stackIdx, lvar, args)
+  case Exp.App(lvar, args) => (env.get(lvar), args) match {
+    case (Some(Binding.ProgramLabel(l)), _) => compileApp(env, stackIdx, l, args)
+    case (Some(Binding.UnaryBuiltin(f)), List(e)) => compileExp(env, stackIdx, f(e))
+    case (Some(Binding.BinaryBuiltin(f)), List(e1, e2)) => compileExp(env, stackIdx, f(e1, e2))
+    case (_, _) => error("Unbound function")
+  }
 
 def compile(p: Program): Either[Error, String] =
   compileProgram(p).value.runA(0).value.map(_.mkString("\n"))
