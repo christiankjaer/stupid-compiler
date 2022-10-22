@@ -1,11 +1,13 @@
+package syntax
+
 type Name = String
 
 enum UnPrim {
   case Inc, Dec, CharToFixnum, FixnumToChar, IsZero, IsNull, Not, IsFixnum,
-    IsBool, IsChar
+    IsBool, IsChar, Neg
 }
 enum BinPrim {
-  case Plus
+  case Plus, Minus, Times, Div, Eq
 }
 enum Const {
   case Fixnum(n: Long)
@@ -23,8 +25,6 @@ enum Exp {
   case App(lvar: Name, args: List[Exp])
 }
 
-final case class Lambda(formals: List[Name], body: Exp)
-
-final case class FunDef(lvar: Name, lam: Lambda)
+final case class FunDef(lvar: Name, formals: List[Name], body: Exp)
 
 final case class Program(funs: List[FunDef], body: Exp)

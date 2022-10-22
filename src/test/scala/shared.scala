@@ -4,6 +4,9 @@ import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.File
 
+import compiler.*
+import syntax.*
+
 abstract class CompilerSuite extends munit.FunSuite {
   def getOutput(program: String): String = {
 
@@ -30,6 +33,13 @@ abstract class CompilerSuite extends munit.FunSuite {
   def checkOutput(p: Program, expected: String): Unit = {
     assertEquals(
       compile(p).map(getOutput),
+      Right(expected)
+    )
+  }
+
+  def checkOutput(program: String, expected: String): Unit = {
+    assertEquals(
+      parser.parseProgram.parseAll(program).flatMap(compile).map(getOutput),
       Right(expected)
     )
   }

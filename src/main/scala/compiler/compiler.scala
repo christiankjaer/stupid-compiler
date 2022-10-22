@@ -1,5 +1,8 @@
+package compiler
+
 import cats.syntax.all.*
 import cats.data.{EitherT, State}
+import syntax.*
 
 val wordSize = 8
 val charShift = 8
@@ -125,12 +128,12 @@ def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): C[List[Instruction]] =
     elseCode <- compileExp(env, stackIdx, ifE.elseB)
   } yield testCode ++ List(
     s"    cmp ${constToImm(Const.False)}, %al",
-    s"    je $altLabel"
+    s"    je $altLabel # jump to else"
   ) ++ thenCode ++ List(
     s"    jmp $endLabel",
-    s"$altLabel:"
+    s"$altLabel: # else branch"
   ) ++ elseCode
-    ++ List(s"$endLabel:")
+    ++ List(s"$endLabel: # end of if")
 
 def compileVar(env: Env, x: Name): Either[Error, List[Instruction]] =
   env.get(x) match
@@ -180,40 +183,40 @@ def compileApp(
       case _                             => error("function $lvar not defined")
 
   } yield argsCode ++ List(
-    s"    addq $$${stackIdx + wordSize}, %rsp",
-    s"    call $lab",
-    s"    addq $$${-(stackIdx + wordSize)}, %rsp"
+    s"    addq $$${stackIdx + wordSize}, %rsp", // Adjust stack pointer to be above local variables
+    s"    call $lab # call ${lvar}",
+    s"    addq $$${-(stackIdx + wordSize)}, %rsp" // Readjust
   )
 
 }
 
+final case class TopDef(label: Label, fd: FunDef)
+
+def compileTopDef(
+    env: Env,
+    td: TopDef
+): C[List[Instruction]] = {
+
+  def go(env: Env, stackIdx: Int, formals: List[Name]): C[List[Instruction]] =
+    formals match
+      case f :: fs =>
+        go(env + (f -> Binding.StackPos(stackIdx)), stackIdx - wordSize, fs)
+      case Nil => compileExp(env, stackIdx, td.fd.body)
+
+  go(env, -wordSize, td.fd.formals)
+    .map(s"${td.label}: # fun ${td.fd.lvar}" :: _ ++ List("    ret"))
+}
+
 def compileProgram(p: Program): C[List[Instruction]] = {
 
-  final case class TopDef(lvar: Name, label: Label, body: Lambda)
-
-  def compileLambda(
-      env: Env,
-      label: Label,
-      lam: Lambda
-  ): C[List[Instruction]] = {
-
-    def go(env: Env, stackIdx: Int, formals: List[Name]): C[List[Instruction]] =
-      formals match
-        case f :: fs =>
-          go(env + (f -> Binding.StackPos(stackIdx)), stackIdx - wordSize, fs)
-        case Nil => compileExp(env, stackIdx, lam.body)
-
-    go(env, -wordSize, lam.formals).map(s"$label:" :: _ ++ List("    ret"))
-  }
-
   val topDefs: C[List[TopDef]] = p.funs
-    .traverse(f => makeLabel.map(l => TopDef(f.lvar, l, f.lam)))
+    .traverse(f => makeLabel.map(l => TopDef(l, f)))
 
   for {
     defs <- topDefs
-    initEnv = defs.map(x => x.lvar -> Binding.ProgramLabel(x.label)).toMap
+    initEnv = defs.map(x => x.fd.lvar -> Binding.ProgramLabel(x.label)).toMap
     funs <- defs
-      .traverse(td => compileLambda(initEnv, td.label, td.body))
+      .traverse(td => compileTopDef(initEnv, td))
       .map(_.flatten)
     bodyCode <- compileExp(initEnv, -wordSize, p.body)
   } yield prelude ++ funs ++ entry ++ bodyCode ++ end

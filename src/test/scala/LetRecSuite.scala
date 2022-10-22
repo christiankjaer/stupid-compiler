@@ -1,9 +1,11 @@
+import syntax.*
+
 class LetRecSuite extends CompilerSuite {
 
   test("not used") {
     val program = Program(
       List(
-        FunDef("f", Lambda(List.empty, Exp.CExp(Const.Fixnum(1337))))
+        FunDef("f", List.empty, Exp.CExp(Const.Fixnum(1337)))
       ),
       Exp.CExp(Const.Null)
     )
@@ -15,17 +17,16 @@ class LetRecSuite extends CompilerSuite {
       List(
         FunDef(
           "g",
-          Lambda(List("x"), Exp.Var("x"))
+          List("x"),
+          Exp.Var("x")
         ),
         FunDef(
           "f",
-          Lambda(
-            List("x", "y"),
-            Exp.BinOp(
-              BinPrim.Plus,
-              Exp.App("g", List(Exp.Var("y"))),
-              Exp.Var("x")
-            )
+          List("x", "y"),
+          Exp.BinOp(
+            BinPrim.Plus,
+            Exp.App("g", List(Exp.Var("y"))),
+            Exp.Var("x")
           )
         )
       ),
@@ -42,17 +43,15 @@ class LetRecSuite extends CompilerSuite {
       List(
         FunDef(
           "add",
-          Lambda(
-            List("x", "y"),
-            Exp.If(
-              Exp.UnOp(UnPrim.IsZero, Exp.Var("y")),
-              Exp.Var("x"),
-              Exp.App(
-                "add",
-                List(
-                  Exp.UnOp(UnPrim.Inc, Exp.Var("x")),
-                  Exp.UnOp(UnPrim.Dec, Exp.Var("y"))
-                )
+          List("x", "y"),
+          Exp.If(
+            Exp.UnOp(UnPrim.IsZero, Exp.Var("y")),
+            Exp.Var("x"),
+            Exp.App(
+              "add",
+              List(
+                Exp.UnOp(UnPrim.Inc, Exp.Var("x")),
+                Exp.UnOp(UnPrim.Dec, Exp.Var("y"))
               )
             )
           )
@@ -62,6 +61,14 @@ class LetRecSuite extends CompilerSuite {
     )
     checkOutput(program, "10\n")
 
+  }
+  test("addfun") {
+    checkOutput(
+      """|fun id(x) = x
+         |fun add(x, y) = x + y
+         |in id(add(3, 7))""".stripMargin('|'),
+      "10\n"
+    )
   }
 
 }

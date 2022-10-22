@@ -1,18 +1,12 @@
+import syntax.*
+import compiler.*
+
 @main def main: Unit = {
-
-  val program = Program(
-    List(
-      FunDef(
-        "f",
-        Lambda(
-          List("x", "y"),
-          Exp.BinOp(BinPrim.Plus, Exp.Var("y"), Exp.Var("x"))
-        )
-      )
-    ),
-    Exp.App("f", List(Exp.CExp(Const.Fixnum(3)), Exp.CExp(Const.Fixnum(5))))
+  println(
+    parser.parseProgram
+      .parseAll("fun add(x, y) = x + y in add(10, 20)")
+      .flatMap(compile)
+      .getOrElse("")
   )
-
-  println(compile(program).getOrElse("error"))
 
 }

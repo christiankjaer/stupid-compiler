@@ -1,3 +1,4 @@
+import syntax.*
 class ExpSuite extends CompilerSuite {
 
 
@@ -107,20 +108,8 @@ class ExpSuite extends CompilerSuite {
   test("add/sub") {
 
     Seq(
-      Exp.BinOp(
-        BinPrim.Plus,
-        Exp.CExp(Const.Fixnum(3)),
-        Exp.CExp(Const.Fixnum(4))
-      ) -> "7\n",
-      Exp.BinOp(
-        BinPrim.Plus,
-        Exp.BinOp(
-          BinPrim.Plus,
-          Exp.CExp(Const.Fixnum(3)),
-          Exp.CExp(Const.Fixnum(4))
-        ),
-        Exp.CExp(Const.Fixnum(9))
-      ) -> "16\n"
+      "3 + 4" -> "7\n",
+      "3 + 4 + 9" -> "16\n"
     ).foreach(checkOutput.tupled)
 
   }
