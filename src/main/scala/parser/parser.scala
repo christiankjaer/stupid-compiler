@@ -35,7 +35,7 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
       | token(P.string("true")).as(Exp.CExp(Const.True)).backtrack
       | app.backtrack | token(identifier).map(Exp.Var.apply)
       | token(
-        Numbers.signedIntString.map(x => Exp.CExp(Const.Fixnum(x.toInt)))
+        Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt)))
       )
       | token(Rfc5234.char)
         .between(P.char('\''), P.char('\''))

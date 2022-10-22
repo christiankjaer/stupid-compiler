@@ -3,14 +3,14 @@ package syntax
 type Name = String
 
 enum UnPrim {
-  case Inc, Dec, CharToFixnum, FixnumToChar, IsZero, IsUnit, Not, IsFixnum,
+  case CharToInt, IntToChar, IsZero, IsUnit, Not, IsInt,
     IsBool, IsChar, Neg
 }
 enum BinPrim {
   case Plus, Minus, Times, Div, Eq
 }
 enum Const {
-  case Fixnum(n: Long)
+  case Int(n: Long)
   case Ch(n: Char)
   case True, False, Unit
 }

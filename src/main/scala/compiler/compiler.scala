@@ -7,10 +7,11 @@ import syntax.*
 val wordSize = 8
 val charShift = 8
 val charTag = 0x0f
+val charMask = 0xff
 
-val fixShift = 2
-val fixMask = 0x3
-val fixTag = 0x0
+val intShift = 2
+val intMask = 0x3
+val intTag = 0x0
 
 val falseVal = 0x2f
 val trueVal = 0x6f
@@ -63,9 +64,11 @@ val end = List(
 val baseEnv: Map[Name, Binding] = Map(
   "is_zero" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsZero, e)),
   "is_unit" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsUnit, e)),
-  "is_fixnum" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsFixnum, e)),
+  "is_int" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsInt, e)),
   "is_bool" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsBool, e)),
-  "is_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsChar, e))
+  "is_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsChar, e)),
+  "int_to_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IntToChar, e)),
+  "char_to_int" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.CharToInt, e))
 )
 
 def makeLabel: C[Label] = for {
@@ -74,7 +77,7 @@ def makeLabel: C[Label] = for {
 } yield s"L_$lab"
 
 def constToImm(c: Const): String = c match
-  case Const.Fixnum(n) => s"$$${n << fixShift}"
+  case Const.Int(n) => s"$$${n << intShift}"
   case Const.False     => s"$$${falseVal}"
   case Const.True      => s"$$${trueVal}"
   case Const.Unit      => s"$$${unitVal}"
@@ -89,15 +92,16 @@ val setBoolean = List(
 
 def compileUnPrim(p: UnPrim): List[Instruction] =
   p match
-    case UnPrim.Inc =>
-      List(s"    addq ${constToImm(Const.Fixnum(1))}, %rax")
-    case UnPrim.Dec =>
-      List(s"    subq ${constToImm(Const.Fixnum(1))}, %rax")
-    case UnPrim.CharToFixnum =>
-      List(s"    sarq $$${charShift - fixShift}, %rax")
-    case UnPrim.FixnumToChar =>
+    case UnPrim.Neg =>
       List(
-        s"    salq $$${charShift - fixShift}, %rax",
+        "    negq %rax",
+        "    and $0xFC, %al"
+      )
+    case UnPrim.CharToInt =>
+      List(s"    sarq $$${charShift - intShift}, %rax")
+    case UnPrim.IntToChar =>
+      List(
+        s"    salq $$${charShift - intShift}, %rax",
         s"    orq $$${charTag}, %rax"
       )
     case UnPrim.IsZero =>
@@ -109,13 +113,16 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
         s"    and $$${boolMask}, %rax",
         s"    cmp $$${boolTag}, %rax"
       ) ++ setBoolean
-    case UnPrim.IsFixnum =>
+    case UnPrim.IsInt =>
       List(
-        s"    andq $$${fixMask}, %rax",
-        s"    cmp $$${fixTag}, %rax"
+        s"    andq $$${intMask}, %rax",
+        s"    cmp $$${intTag}, %rax"
       ) ++ setBoolean
-
-    case _ => sys.error("Not implemented")
+    case UnPrim.IsChar =>
+      List(
+        s"    andq $$${charMask}, %rax",
+        s"    cmp $$${charTag}, %rax"
+      ) ++ setBoolean
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
@@ -125,6 +132,19 @@ def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
       s"    xchgq ${stackIdx}(%rsp), %rax", // There is definitely a better way
       s"    subq ${stackIdx}(%rsp), %rax"
     )
+  case BinPrim.Times =>
+    List(
+      s"    sarq $$${intShift}, %rax",
+      s"    imulq ${stackIdx}(%rsp), %rax"
+    )
+  case BinPrim.Div =>
+    List(
+      s"    xchgq ${stackIdx}(%rsp), %rax", // There is definitely a better way
+      "    cqto",
+      s"    idivq ${stackIdx}(%rsp), %rax",
+      s"    salq $$${intShift}, %rax"
+    )
+
   case BinPrim.Eq =>
     s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
 
@@ -228,7 +248,9 @@ def compileProgram(p: Program): C[List[Instruction]] = {
 
   for {
     defs <- topDefs
-    initEnv = baseEnv ++ defs.map(x => x.fd.lvar -> Binding.ProgramLabel(x.label)).toMap
+    initEnv = baseEnv ++ defs
+      .map(x => x.fd.lvar -> Binding.ProgramLabel(x.label))
+      .toMap
     funs <- defs
       .traverse(td => compileTopDef(initEnv, td))
       .map(_.flatten)
@@ -242,14 +264,18 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
   case Exp.CExp(c)    => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
   case ifE: Exp.If    => compileIf(env, stackIdx, ifE)
   case Exp.UnOp(p, e) => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
-  case binop: Exp.BinOp    => compileBinOp(env, stackIdx, binop)
-  case Exp.Let(xs, body)   => compileLet(env, stackIdx, xs, body)
-  case Exp.App(lvar, args) => (env.get(lvar), args) match {
-    case (Some(Binding.ProgramLabel(l)), _) => compileApp(env, stackIdx, l, args)
-    case (Some(Binding.UnaryBuiltin(f)), List(e)) => compileExp(env, stackIdx, f(e))
-    case (Some(Binding.BinaryBuiltin(f)), List(e1, e2)) => compileExp(env, stackIdx, f(e1, e2))
-    case (_, _) => error("Unbound function")
-  }
+  case binop: Exp.BinOp  => compileBinOp(env, stackIdx, binop)
+  case Exp.Let(xs, body) => compileLet(env, stackIdx, xs, body)
+  case Exp.App(lvar, args) =>
+    (env.get(lvar), args) match {
+      case (Some(Binding.ProgramLabel(l)), _) =>
+        compileApp(env, stackIdx, l, args)
+      case (Some(Binding.UnaryBuiltin(f)), List(e)) =>
+        compileExp(env, stackIdx, f(e))
+      case (Some(Binding.BinaryBuiltin(f)), List(e1, e2)) =>
+        compileExp(env, stackIdx, f(e1, e2))
+      case (_, _) => error("Unbound function")
+    }
 
 def compile(p: Program): Either[Error, String] =
   compileProgram(p).value.runA(0).value.map(_.mkString("\n"))

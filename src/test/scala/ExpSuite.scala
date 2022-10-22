@@ -29,50 +29,31 @@ class ExpSuite extends CompilerSuite {
     ).foreach(checkOutput.tupled)
   }
 
-  test("inc") {
-    Seq(
-      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(10))) -> "11\n",
-      Exp.UnOp(
-        UnPrim.Inc,
-        Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(10)))
-      ) -> "12\n",
-      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(0))) -> "1\n",
-      Exp.UnOp(UnPrim.Inc, Exp.CExp(Const.Fixnum(-1))) -> "0\n"
-    ).foreach(checkOutput.tupled)
-  }
-
-  test("dec") {
-    Seq(
-      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(10))) -> "9\n",
-      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(1))) -> "0\n",
-      Exp.UnOp(UnPrim.Dec, Exp.CExp(Const.Fixnum(0))) -> "-1\n"
-    ).foreach(checkOutput.tupled)
-  }
-
   test("conv") {
     Seq(
-      Exp.UnOp(UnPrim.FixnumToChar, Exp.CExp(Const.Fixnum(65))) -> "#\\A\n",
-      Exp.UnOp(UnPrim.CharToFixnum, Exp.CExp(Const.Ch('a'))) -> "97\n"
+      "int_to_char(65)" -> "#\\A\n",
+      "char_to_int('a')" -> "97\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("test") {
     Seq(
       "is_zero(65)" -> "#f\n",
-      "is_unit(())" -> "#t\n"
-    ).foreach(checkOutput.tupled)
-    Seq(
-      Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(65))) -> "#f\n",
-      Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
-      Exp.UnOp(UnPrim.IsUnit, Exp.CExp(Const.Fixnum(0))) -> "#f\n",
-      Exp.UnOp(UnPrim.IsUnit, Exp.CExp(Const.Unit)) -> "#t\n",
-      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.Unit)) -> "#f\n",
-      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.True)) -> "#t\n",
-      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.False)) -> "#t\n",
-      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(65))) -> "#t\n",
-      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
-      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Unit)) -> "#f\n",
-      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Ch('b'))) -> "#f\n"
+      "is_zero(0)" -> "#t\n",
+
+      "is_unit(0)" -> "#f\n",
+      "is_unit(())" -> "#t\n",
+      "is_unit(true)" -> "#f\n",
+
+      "is_char('b')" -> "#t\n",
+      "is_char(0)" -> "#f\n",
+      "is_char(())" -> "#f\n",
+
+      "is_int(1234)" -> "#t\n",
+      "is_int(())" -> "#f\n",
+      "is_int(0)" -> "#t\n",
+      "is_int(false)" -> "#f\n",
+      "is_int('b')" -> "#f\n"
     ).foreach(checkOutput.tupled)
   }
 
@@ -86,13 +67,20 @@ class ExpSuite extends CompilerSuite {
     ).foreach(checkOutput.tupled)
   }
 
-  test("add/sub") {
+  test("add/sub/mul/div") {
 
     Seq(
+      "~3" -> "-3\n",
+      "~(-3)" -> "3\n",
+      "~0" -> "0\n",
+      "~1337" -> "-1337\n",
       "3 + 4" -> "7\n",
       "3 + 4 + 9" -> "16\n",
       "5 - 2" -> "3\n",
-      "1 - 2" -> "-1\n"
+      "1 - 2" -> "-1\n",
+      "3 * 5" -> "15\n",
+      "15 / 3" -> "5\n",
+      "10 / 3" -> "3\n",
     ).foreach(checkOutput.tupled)
 
   }

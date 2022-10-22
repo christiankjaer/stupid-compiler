@@ -3,7 +3,7 @@ import syntax.*
 import Exp.*
 class ParserSuite extends munit.FunSuite {
 
-  def num(x: Int): Exp = CExp(Const.Fixnum(x))
+  def num(x: Int): Exp = CExp(Const.Int(x))
 
   test("fucking plus") {
 

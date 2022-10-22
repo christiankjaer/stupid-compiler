@@ -3,9 +3,9 @@ const std = @import("std");
 const bool_f = 0x2f;
 const bool_t = 0x6f;
 const unit_t = 0x3f;
-const fx_mask = 0x03;
-const fx_tag = 0x00;
-const fx_shift = 2;
+const int_mask = 0x03;
+const int_tag = 0x00;
+const int_shift = 2;
 const ch_mask = 0xFF;
 const ch_tag = 0x0F;
 const ch_shift = 8;
@@ -22,8 +22,8 @@ pub fn main() anyerror!void {
 
     const res = program_entry(@ptrCast([*c]u64, stack), stack_size);
 
-    if (res & fx_mask == fx_tag) {
-        const shifted = @bitCast(i64, res) >> fx_shift;
+    if (res & int_mask == int_tag) {
+        const shifted = @bitCast(i64, res) >> int_shift;
         try stdout.print("{d}\n", .{shifted});
     } else if (res & ch_mask == ch_tag) {
         // TODO: Nicer printing
