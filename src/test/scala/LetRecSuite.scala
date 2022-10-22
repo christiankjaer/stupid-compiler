@@ -3,13 +3,20 @@ import syntax.*
 class LetRecSuite extends CompilerSuite {
 
   test("not used") {
-    val program = Program(
-      List(
-        FunDef("f", List.empty, Exp.CExp(Const.Fixnum(1337)))
-      ),
-      Exp.CExp(Const.Null)
+    checkOutput("fun f() = 1337 in ()", "()\n")
+  }
+
+  test("no args") {
+    checkOutput("fun f() = 1337 in f()", "1337\n")
+  }
+
+  test("scoping") {
+    checkOutput(
+      """|fun f() = 1337
+         |fun g() = f()
+         |in g()""".stripMargin('|'),
+      "1337\n"
     )
-    checkOutput(program, "()\n")
   }
 
   test("add") {

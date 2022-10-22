@@ -1,36 +1,32 @@
 import syntax.*
 class ExpSuite extends CompilerSuite {
 
-
   test("fixnum") {
     Seq(
-      Exp.CExp(Const.Fixnum(0)) -> "0\n",
-      Exp.CExp(Const.Fixnum(1)) -> "1\n",
-      Exp.CExp(Const.Fixnum(-1)) -> "-1\n",
-      Exp.CExp(Const.Fixnum(10)) -> "10\n",
-      Exp.CExp(Const.Fixnum(-10)) -> "-10\n",
-      Exp.CExp(Const.Fixnum(2736)) -> "2736\n",
-      Exp.CExp(Const.Fixnum(536870911)) -> "536870911\n",
-      Exp.CExp(Const.Fixnum(-536870912)) -> "-536870912\n"
+      "0" -> "0\n",
+      "1" -> "1\n",
+      "-1" -> "-1\n",
+      "10" -> "10\n",
+      "-10" -> "-10\n",
+      "2736" -> "2736\n",
+      "536870911" -> "536870911\n",
+      "-536870912" -> "-536870912\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("char") {
     Seq(
-      Exp.CExp(Const.Ch('a')) -> "#\\a\n",
-      Exp.CExp(Const.Ch('0')) -> "#\\0\n"
+      "'a'" -> "#\\a\n",
+      "'0'" -> "#\\0\n"
     ).foreach(checkOutput.tupled)
-
   }
 
   test("boolean") {
-
     Seq(
-      Exp.CExp(Const.True) -> "#t\n",
-      Exp.CExp(Const.False) -> "#f\n",
-      Exp.CExp(Const.Null) -> "()\n"
+      "true" -> "#t\n",
+      "false" -> "#f\n",
+      "()" -> "()\n"
     ).foreach(checkOutput.tupled)
-
   }
 
   test("inc") {
@@ -64,44 +60,25 @@ class ExpSuite extends CompilerSuite {
     Seq(
       Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(65))) -> "#f\n",
       Exp.UnOp(UnPrim.IsZero, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
-      Exp.UnOp(UnPrim.IsNull, Exp.CExp(Const.Fixnum(0))) -> "#f\n",
-      Exp.UnOp(UnPrim.IsNull, Exp.CExp(Const.Null)) -> "#t\n",
-      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.Null)) -> "#f\n",
+      Exp.UnOp(UnPrim.IsUnit, Exp.CExp(Const.Fixnum(0))) -> "#f\n",
+      Exp.UnOp(UnPrim.IsUnit, Exp.CExp(Const.Unit)) -> "#t\n",
+      Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.Unit)) -> "#f\n",
       Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.True)) -> "#t\n",
       Exp.UnOp(UnPrim.IsBool, Exp.CExp(Const.False)) -> "#t\n",
       Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(65))) -> "#t\n",
       Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Fixnum(0))) -> "#t\n",
-      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Null)) -> "#f\n",
+      Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Unit)) -> "#f\n",
       Exp.UnOp(UnPrim.IsFixnum, Exp.CExp(Const.Ch('b'))) -> "#f\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("if") {
     Seq(
-      Exp.If(
-        Exp.CExp(Const.True),
-        Exp.CExp(Const.Fixnum(1337)),
-        Exp.CExp(Const.Fixnum(42))
-      ) -> "1337\n",
-      Exp.If(
-        Exp.CExp(Const.Null),
-        Exp.CExp(Const.Fixnum(1337)),
-        Exp.CExp(Const.Fixnum(42))
-      ) -> "1337\n",
-      Exp.If(
-        Exp.CExp(Const.False),
-        Exp.CExp(Const.Fixnum(1337)),
-        Exp.CExp(Const.Fixnum(42))
-      ) -> "42\n",
-      Exp.If(
-        Exp.If(
-          Exp.CExp(Const.False),
-          Exp.CExp(Const.False),
-          Exp.CExp(Const.True)
-        ), // True
-        Exp.CExp(Const.Fixnum(1337)),
-        Exp.CExp(Const.Fixnum(42))
-      ) -> "1337\n"
+      "if true then 1337 else 42" -> "1337\n",
+      "if () then 1337 else 42" -> "1337\n",
+      "if false then 1337 else 42" -> "42\n",
+      "if false then 1 else if true then 2 else 3" -> "2\n",
+      "if (if false then false else true) then 1337 else 42" -> "1337\n"
     ).foreach(checkOutput.tupled)
   }
 
@@ -109,22 +86,39 @@ class ExpSuite extends CompilerSuite {
 
     Seq(
       "3 + 4" -> "7\n",
-      "3 + 4 + 9" -> "16\n"
+      "3 + 4 + 9" -> "16\n",
+      "5 - 2" -> "3\n",
+      "1 - 2" -> "-1\n"
+    ).foreach(checkOutput.tupled)
+
+  }
+
+  test("cmp") {
+    Seq(
+      "1 == 3" -> "#f\n",
+      "42 == 42" -> "#t\n",
+      "true == true" -> "#t\n",
+      "true == false" -> "#f\n",
+      "1 == ()" -> "#f\n"
     ).foreach(checkOutput.tupled)
 
   }
 
   test("let") {
+
     Seq(
-      Exp.Let(List(), Exp.CExp(Const.True)) -> "#t\n",
-      Exp.Let(List("x" -> Exp.CExp(Const.Fixnum(10))), Exp.Var("x")) -> "10\n",
-      Exp.Let(
-        List(
-          "x" -> Exp.CExp(Const.Fixnum(10)),
-          "y" -> Exp.BinOp(BinPrim.Plus, Exp.Var("x"), Exp.Var("x"))
-        ),
-        Exp.Var("y")
-      ) -> "20\n"
+      "let x = 10 in x" -> "10\n",
+      """|let x = 10
+         |    y = x + x
+         | in y""".stripMargin('|') -> "20\n",
+      """|let x = if false then 10 else 12
+         |    y = x + x
+         | in y""".stripMargin('|') -> "24\n"
+    ).foreach(checkOutput.tupled)
+
+    // Test for empty let
+    Seq(
+      Exp.Let(List(), Exp.CExp(Const.True)) -> "#t\n"
     ).foreach(checkOutput.tupled)
   }
 }

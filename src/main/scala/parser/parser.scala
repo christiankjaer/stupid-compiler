@@ -5,6 +5,7 @@ import cats.parse.{Parser0, Parser => P, Numbers}
 import cats.syntax.all.*
 
 import syntax.*
+import cats.parse.Rfc5234
 
 /*
 
@@ -16,7 +17,7 @@ fun f(x, y, x) = exp
 fun g() = exp
 
 in
-  let x = foo
+  let x = if foo then 1 else 9
       y = bar
       z = baz
   in x + y + z
@@ -29,16 +30,21 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     .repSep0(token(P.char(',')))
     .between(token(P.char('(')), token(P.char(')')))).map(Exp.App.apply)
 
-  val base = app.backtrack | token(identifier).map(Exp.Var.apply) |
-    token(
-      Numbers.nonNegativeIntString.map(x => Exp.CExp(Const.Fixnum(x.toInt)))
-    )
-    | token(P.string("()")).as(Exp.CExp(Const.Null))
-    | expr.between(token(P.char('(')), token(P.char(')')))
-
+  val base =
+    token(P.string("false")).as(Exp.CExp(Const.False)).backtrack
+      | token(P.string("true")).as(Exp.CExp(Const.True)).backtrack
+      | app.backtrack | token(identifier).map(Exp.Var.apply)
+      | token(
+        Numbers.signedIntString.map(x => Exp.CExp(Const.Fixnum(x.toInt)))
+      )
+      | token(Rfc5234.char)
+        .between(P.char('\''), P.char('\''))
+        .map(c => Exp.CExp(Const.Ch(c)))
+      | token(P.string("()")).as(Exp.CExp(Const.Unit))
+      | expr.between(token(P.char('(')), token(P.char(')')))
 
   def factor: P[Exp] =
-    (token(P.char('-')) *> P.defer(factor))
+    (token(P.char('~')) *> P.defer(factor))
       .map(Exp.UnOp(UnPrim.Neg, _)) | base
 
   val plus: P[(Exp, Exp) => Exp] =
@@ -65,17 +71,22 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
 
   def arith: P[Exp] = (term ~ arith1).map { case (a, f) => f(a) }
 
-  //def let =
-  arith ~ (eq *> arith).? map {
+  def ar = arith ~ (eq *> arith).? map {
     case (e1, None)     => e1
     case (e1, Some(e2)) => Exp.BinOp(BinPrim.Eq, e1, e2)
   }
 
-  //(token(P.string("let")) *> (token(identifier).soft ~ (token(
-  //  P.char('=')
-  //) *> let)).rep ~ (token(P.string("in")) *> expr)).map {
-  //  case (bindings, body) => Exp.Let(bindings.toList, body)
-  //} | let
+  def iff = ((token(P.string("if")) *> expr <* token(
+    P.string("then")
+  )) ~ (expr <* token(P.string("else"))) ~ expr).map { case ((test, th), el) =>
+    Exp.If(test, th, el)
+  } | ar
+
+  (token(P.string("let")) *> (token(identifier).soft ~ (token(
+    P.char('=')
+  ) *> iff)).rep ~ (token(P.string("in")) *> expr)).map {
+    case (bindings, body) => Exp.Let(bindings.toList, body)
+  } | iff
 
 }
 

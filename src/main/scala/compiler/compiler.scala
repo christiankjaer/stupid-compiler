@@ -14,7 +14,7 @@ val fixTag = 0x0
 
 val falseVal = 0x2f
 val trueVal = 0x6f
-val nullVal = 0x3f
+val unitVal = 0x3f
 
 val boolShift = 6
 val boolMask = 0xbf
@@ -67,16 +67,17 @@ def constToImm(c: Const): String = c match
   case Const.Fixnum(n) => s"$$${n << fixShift}"
   case Const.False     => s"$$${falseVal}"
   case Const.True      => s"$$${trueVal}"
-  case Const.Null      => s"$$${nullVal}"
+  case Const.Unit      => s"$$${unitVal}"
   case Const.Ch(c)     => s"$$${(c << charShift) | charTag}"
 
-def compileUnPrim(p: UnPrim): List[Instruction] = {
-  val setBoolean = List(
-    "    sete %al",
-    "    movzbq %al, %rax",
-    s"    salq $$${boolShift}, %rax",
-    s"    orq $$${boolTag}, %rax"
-  )
+val setBoolean = List(
+  "    sete %al",
+  "    movzbq %al, %rax",
+  s"    salq $$${boolShift}, %rax",
+  s"    orq $$${boolTag}, %rax"
+)
+
+def compileUnPrim(p: UnPrim): List[Instruction] =
   p match
     case UnPrim.Inc =>
       List(s"    addq ${constToImm(Const.Fixnum(1))}, %rax")
@@ -91,8 +92,8 @@ def compileUnPrim(p: UnPrim): List[Instruction] = {
       )
     case UnPrim.IsZero =>
       "    cmp $0, %rax" :: setBoolean
-    case UnPrim.IsNull =>
-      s"    cmp $$${nullVal}, %rax" :: setBoolean
+    case UnPrim.IsUnit =>
+      s"    cmp $$${unitVal}, %rax" :: setBoolean
     case UnPrim.IsBool =>
       List(
         s"    and $$${boolMask}, %rax",
@@ -105,11 +106,17 @@ def compileUnPrim(p: UnPrim): List[Instruction] = {
       ) ++ setBoolean
 
     case _ => sys.error("Not implemented")
-}
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
     List(s"    addq ${stackIdx}(%rsp), %rax")
+  case BinPrim.Minus =>
+    List(
+      s"    xchgq ${stackIdx}(%rsp), %rax", // There is definitely a better way
+      s"    subq ${stackIdx}(%rsp), %rax"
+    )
+  case BinPrim.Eq =>
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
 
 def compileBinOp(env: Env, stackIdx: Int, p: Exp.BinOp): C[List[Instruction]] =
   for {

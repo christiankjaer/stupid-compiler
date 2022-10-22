@@ -2,7 +2,7 @@ const std = @import("std");
 
 const bool_f = 0x2f;
 const bool_t = 0x6f;
-const null_t = 0x3f;
+const unit_t = 0x3f;
 const fx_mask = 0x03;
 const fx_tag = 0x00;
 const fx_shift = 2;
@@ -33,7 +33,7 @@ pub fn main() anyerror!void {
         _ = try stdout.write("#f\n");
     } else if (res == bool_t) {
         _ = try stdout.write("#t\n");
-    } else if (res == null_t) {
+    } else if (res == unit_t) {
         _ = try stdout.write("()\n");
     } else {
         try stdout.print("#<unknown 0x{X}>", .{res});
