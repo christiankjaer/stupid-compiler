@@ -11,3 +11,5 @@ val identifier: P[String] =
       P.charIn('A' to 'Z') |
       P.charIn('0' to '9') |
       P.char('_')).rep0).string
+
+def keyword(w: String) = token(P.string(w))
