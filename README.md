@@ -17,3 +17,8 @@ $ sbt run "examples examples/add.stupid add"
 $ ./add
 1379
 ```
+
+## Next steps
+- Heap allocations
+- Closures and lambdas
+- Type system
