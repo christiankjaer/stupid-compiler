@@ -28,11 +28,11 @@ pub fn main() anyerror!void {
     } else if (res & ch_mask == ch_tag) {
         // TODO: Nicer printing
         const shifted = @truncate(u8, res >> ch_shift);
-        try stdout.print("#\\{c}\n", .{shifted});
+        try stdout.print("{c}\n", .{shifted});
     } else if (res == bool_f) {
-        _ = try stdout.write("#f\n");
+        _ = try stdout.write("false\n");
     } else if (res == bool_t) {
-        _ = try stdout.write("#t\n");
+        _ = try stdout.write("true\n");
     } else if (res == unit_t) {
         _ = try stdout.write("()\n");
     } else {

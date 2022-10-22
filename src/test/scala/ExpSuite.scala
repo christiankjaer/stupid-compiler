@@ -16,47 +16,47 @@ class ExpSuite extends CompilerSuite {
 
   test("char") {
     Seq(
-      "'a'" -> "#\\a\n",
-      "'0'" -> "#\\0\n"
+      "'a'" -> "a\n",
+      "'0'" -> "0\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("boolean") {
     Seq(
-      "true" -> "#t\n",
-      "false" -> "#f\n",
-      "!true" -> "#f\n",
-      "!false" -> "#t\n",
-      "!()" -> "#f\n",
-      "!1234" -> "#f\n",
+      "true" -> "true\n",
+      "false" -> "false\n",
+      "!true" -> "false\n",
+      "!false" -> "true\n",
+      "!()" -> "false\n",
+      "!1234" -> "false\n",
     ).foreach(checkOutput.tupled)
   }
 
   test("conv") {
     Seq(
-      "int_to_char(65)" -> "#\\A\n",
+      "int_to_char(65)" -> "A\n",
       "char_to_int('a')" -> "97\n"
     ).foreach(checkOutput.tupled)
   }
 
   test("test") {
     Seq(
-      "is_zero(65)" -> "#f\n",
-      "is_zero(0)" -> "#t\n",
+      "is_zero(65)" -> "false\n",
+      "is_zero(0)" -> "true\n",
 
-      "is_unit(0)" -> "#f\n",
-      "is_unit(())" -> "#t\n",
-      "is_unit(true)" -> "#f\n",
+      "is_unit(0)" -> "false\n",
+      "is_unit(())" -> "true\n",
+      "is_unit(true)" -> "false\n",
 
-      "is_char('b')" -> "#t\n",
-      "is_char(0)" -> "#f\n",
-      "is_char(())" -> "#f\n",
+      "is_char('b')" -> "true\n",
+      "is_char(0)" -> "false\n",
+      "is_char(())" -> "false\n",
 
-      "is_int(1234)" -> "#t\n",
-      "is_int(())" -> "#f\n",
-      "is_int(0)" -> "#t\n",
-      "is_int(false)" -> "#f\n",
-      "is_int('b')" -> "#f\n"
+      "is_int(1234)" -> "true\n",
+      "is_int(())" -> "false\n",
+      "is_int(0)" -> "true\n",
+      "is_int(false)" -> "false\n",
+      "is_int('b')" -> "false\n"
     ).foreach(checkOutput.tupled)
   }
 
@@ -90,11 +90,11 @@ class ExpSuite extends CompilerSuite {
 
   test("cmp") {
     Seq(
-      "1 == 3" -> "#f\n",
-      "42 == 42" -> "#t\n",
-      "true == true" -> "#t\n",
-      "true == false" -> "#f\n",
-      "1 == ()" -> "#f\n"
+      "1 == 3" -> "false\n",
+      "42 == 42" -> "true\n",
+      "true == true" -> "true\n",
+      "true == false" -> "false\n",
+      "1 == ()" -> "false\n"
     ).foreach(checkOutput.tupled)
 
   }
@@ -113,7 +113,7 @@ class ExpSuite extends CompilerSuite {
 
     // Test for empty let
     Seq(
-      Exp.Let(List(), Exp.CExp(Const.True)) -> "#t\n"
+      Exp.Let(List(), Exp.CExp(Const.True)) -> "true\n"
     ).foreach(checkOutput.tupled)
   }
 }
