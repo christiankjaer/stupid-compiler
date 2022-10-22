@@ -44,8 +44,10 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
       | expr.between(token(P.char('(')), token(P.char(')')))
 
   def factor: P[Exp] =
-    (token(P.char('~')) *> P.defer(factor))
-      .map(Exp.UnOp(UnPrim.Neg, _)) | base
+    (token(P.charIn('~', '!')) ~ P.defer(factor)).map {
+      case ('~', e) => Exp.UnOp(UnPrim.Neg, e)
+      case (_, e) => Exp.UnOp(UnPrim.Not, e)
+    } | base
 
   val plus: P[(Exp, Exp) => Exp] =
     token(P.char('+').as(Exp.BinOp(BinPrim.Plus, _, _)))

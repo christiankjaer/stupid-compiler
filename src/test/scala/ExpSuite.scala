@@ -25,7 +25,10 @@ class ExpSuite extends CompilerSuite {
     Seq(
       "true" -> "#t\n",
       "false" -> "#f\n",
-      "()" -> "()\n"
+      "!true" -> "#f\n",
+      "!false" -> "#t\n",
+      "!()" -> "#f\n",
+      "!1234" -> "#f\n",
     ).foreach(checkOutput.tupled)
   }
 
