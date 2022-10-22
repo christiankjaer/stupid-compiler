@@ -3,7 +3,7 @@ name: Stupid CI
 on: push
 
 jobs:
-  build and test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
