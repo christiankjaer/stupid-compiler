@@ -1,0 +1,12 @@
+name: Stupid CI
+
+on: push
+
+jobs:
+  build and test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: olafurpg/setup-scala@v11
+      - uses: goto-bus-stop/setup-zig@v1
+      - run: sbt test
