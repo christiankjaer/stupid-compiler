@@ -1,16 +1,13 @@
-import parser.*
-import compiler.*
-import com.monovore.decline.CommandApp
-import com.monovore.decline.Opts
-import java.nio.file.Path
 import cats.syntax.all.*
-import java.nio.file.Files
-import java.io.FileWriter
+import com.monovore.decline.{CommandApp, Opts}
+import compiler.*
+import parser.*
+
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Path}
 import scala.io.Source
+
 import sys.process.*
-import java.nio.file.Files
-import java.io.BufferedWriter
-import java.io.File
 
 val inputFile = Opts.argument[Path](metavar = "file")
 val name = Opts.argument[Path](metavar = "name")
@@ -47,4 +44,3 @@ object Main
       header = "Compiles stupid programs",
       main = (inputFile, name).mapN(compileProgram)
     )
-

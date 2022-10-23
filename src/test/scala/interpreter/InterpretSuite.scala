@@ -1,7 +1,7 @@
 package interpreter
 
-import syntax.*
 import parser.*
+import syntax.*
 
 class InterpretSuite extends munit.FunSuite {
 

@@ -1,13 +1,12 @@
 package compiler
 
-import sys.process.*
-import java.nio.file.Files
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.File
-
 import compiler.*
 import syntax.*
+
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.Files
+
+import sys.process.*
 
 abstract class CompilerSuite extends munit.FunSuite {
   def getOutput(program: String): String = {

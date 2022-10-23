@@ -1,9 +1,8 @@
 package parser
 
 import cats.parse.Rfc5234.{alpha, char, digit}
-import cats.parse.{Parser0, Parser => P, Numbers}
+import cats.parse.{Numbers, Parser => P, Parser0}
 import cats.syntax.all.*
-
 import syntax.*
 
 /*
@@ -100,6 +99,4 @@ val parseFunDef: P[FunDef] =
 
 val parseProgram: P[Program] =
   (parseFunDef.rep ~ (keyword("in") *> parseExp))
-    .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e =>
-    Program(List.empty, e)
-  )
+    .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e => Program(List.empty, e))

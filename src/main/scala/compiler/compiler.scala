@@ -1,7 +1,7 @@
 package compiler
 
-import cats.syntax.all.*
 import cats.data.{EitherT, State}
+import cats.syntax.all.*
 import syntax.*
 
 val wordSize = 8
@@ -61,7 +61,7 @@ val end = List(
 )
 
 val baseEnv: Map[Name, Binding] =
-  builtins.mapValues(Binding.BIn.apply).toMap
+  builtins.map((k, v) => k -> Binding.BIn(v))
 
 def makeLabel: C[Label] = for {
   lab <- EitherT.liftF(State.get)
@@ -252,10 +252,10 @@ def compileProgram(p: Program): C[List[Instruction]] = {
 }
 
 def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
-  case Exp.Var(x)     => EitherT.fromEither(compileVar(env, x))
-  case Exp.CExp(c)    => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
-  case ifE: Exp.If    => compileIf(env, stackIdx, ifE)
-  case Exp.UnOp(p, e) => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
+  case Exp.Var(x)        => EitherT.fromEither(compileVar(env, x))
+  case Exp.CExp(c)       => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
+  case ifE: Exp.If       => compileIf(env, stackIdx, ifE)
+  case Exp.UnOp(p, e)    => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
   case binop: Exp.BinOp  => compileBinOp(env, stackIdx, binop)
   case Exp.Let(xs, body) => compileLet(env, stackIdx, xs, body)
   case Exp.App(lvar, args) =>

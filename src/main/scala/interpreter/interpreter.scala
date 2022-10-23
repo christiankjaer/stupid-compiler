@@ -1,7 +1,7 @@
 package interpreter
 
-import syntax.*
 import cats.syntax.all.*
+import syntax.*
 
 type Error = String
 
@@ -17,7 +17,7 @@ enum Binding {
 type Env = Map[Name, Binding]
 
 val baseEnv: Map[Name, Binding] =
-  builtins.mapValues(Binding.BIn.apply).toMap
+  builtins.map((k, v) => k -> Binding.BIn(v))
 
 def interpUnOp(op: UnPrim, v: Const): I[Const] = (op, v) match
   case (UnPrim.CharToInt, Const.Ch(c)) => Right(Const.Int(c.intValue))

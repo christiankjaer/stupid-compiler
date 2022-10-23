@@ -1,6 +1,13 @@
 val scala3Version = "3.2.0"
 
-ThisBuild / parallelExecution := false
+inThisBuild(
+  List(
+    scalacOptions := Seq("-unchecked", "-deprecation"),
+    parallelExecution := false,
+    semanticdbEnabled := true, // enable SemanticDB
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+  )
+)
 
 lazy val root = project
   .in(file("."))

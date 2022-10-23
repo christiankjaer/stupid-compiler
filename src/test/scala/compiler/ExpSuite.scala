@@ -31,7 +31,7 @@ class ExpSuite extends CompilerSuite {
       "!true" -> "false\n",
       "!false" -> "true\n",
       "!()" -> "false\n",
-      "!1234" -> "false\n",
+      "!1234" -> "false\n"
     ).foreach(checkOutput.tupled)
   }
 
@@ -46,15 +46,12 @@ class ExpSuite extends CompilerSuite {
     Seq(
       "is_zero(65)" -> "false\n",
       "is_zero(0)" -> "true\n",
-
       "is_unit(0)" -> "false\n",
       "is_unit(())" -> "true\n",
       "is_unit(true)" -> "false\n",
-
       "is_char('b')" -> "true\n",
       "is_char(0)" -> "false\n",
       "is_char(())" -> "false\n",
-
       "is_int(1234)" -> "true\n",
       "is_int(())" -> "false\n",
       "is_int(0)" -> "true\n",
@@ -86,7 +83,7 @@ class ExpSuite extends CompilerSuite {
       "1 - 2" -> "-1\n",
       "3 * 5" -> "15\n",
       "15 / 3" -> "5\n",
-      "10 / 3" -> "3\n",
+      "10 / 3" -> "3\n"
     ).foreach(checkOutput.tupled)
 
   }
