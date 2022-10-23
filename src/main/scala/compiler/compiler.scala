@@ -23,7 +23,7 @@ val boolTag = 0x2f
 
 enum Binding {
   case StackPos(i: Int)
-  case ProgramLabel(l: Label)
+  case ProgramLabel(l: Label, arity: Int)
   case Toplevel(b: Builtin)
 }
 
@@ -242,7 +242,7 @@ def compileProgram(p: Program): C[List[Instruction]] = {
   for {
     defs <- topDefs
     initEnv = baseEnv ++ defs
-      .map(x => x.fd.name -> Binding.ProgramLabel(x.label))
+      .map(x => x.fd.name -> Binding.ProgramLabel(x.label, x.fd.formals.length))
       .toMap
     funs <- defs.flatTraverse(td => compileTopDef(initEnv, td))
     bodyCode <- compileExp(initEnv, -wordSize, p.body)
@@ -258,7 +258,7 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
   case Exp.Let(xs, body) => compileLet(env, stackIdx, xs, body)
   case Exp.App(lvar, args) =>
     (env.get(lvar), args) match {
-      case (Some(Binding.ProgramLabel(l)), _) =>
+      case (Some(Binding.ProgramLabel(l, arity)), args) if args.length == arity =>
         compileApp(env, stackIdx, l, args)
       case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
         compileExp(env, stackIdx, f(e))
