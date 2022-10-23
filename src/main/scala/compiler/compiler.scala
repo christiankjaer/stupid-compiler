@@ -24,7 +24,7 @@ val boolTag = 0x2f
 enum Binding {
   case StackPos(i: Int)
   case ProgramLabel(l: Label)
-  case BIn(b: Builtin)
+  case Toplevel(b: Builtin)
 }
 
 type Instruction = String
@@ -61,7 +61,7 @@ val end = List(
 )
 
 val baseEnv: Map[Name, Binding] =
-  builtins.map((k, v) => k -> Binding.BIn(v))
+  builtins.map((k, v) => k -> Binding.Toplevel(v))
 
 def makeLabel: C[Label] = for {
   lab <- EitherT.liftF(State.get)
@@ -260,9 +260,9 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
     (env.get(lvar), args) match {
       case (Some(Binding.ProgramLabel(l)), _) =>
         compileApp(env, stackIdx, l, args)
-      case (Some(Binding.BIn(Builtin.Unary(f))), List(e)) =>
+      case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
         compileExp(env, stackIdx, f(e))
-      case (Some(Binding.BIn(Builtin.Binary(f))), List(e1, e2)) =>
+      case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>
         compileExp(env, stackIdx, f(e1, e2))
       case (_, _) => error("Unbound function")
     }
