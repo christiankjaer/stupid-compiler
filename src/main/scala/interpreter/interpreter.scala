@@ -1,11 +1,17 @@
 package interpreter
 
+import cats.data.Kleisli
 import syntax.*
 
 type Error = String
 
+final case class Env(globals: Map[Name, Binding], locals: Map[Name, Binding]) {
+  def extendLocal(name: Name, v: Const): Env =
+    copy(locals = locals + (name -> Binding.Variable(v)))
+}
+
 // Interpreter monad
-type I[T] = Either[Error, T]
+type I[T] = Kleisli[Either[Error, *], Env, T]
 
 enum Binding {
   case Variable(c: Const)
@@ -13,129 +19,136 @@ enum Binding {
   case Toplevel(b: Builtin)
 }
 
-type Env = Map[Name, Binding]
+def lookup(n: Name): I[Option[Binding]] =
+  Kleisli.ask.map(env => env.locals.get(n) orElse env.globals.get(n))
 
-val baseEnv: Map[Name, Binding] =
-  builtins.map((k, v) => k -> Binding.Toplevel(v))
+def pure[T](a: T): I[T] =
+  Kleisli.pure(a)
+
+def err[T](e: Error): I[T] =
+  Kleisli.liftF(Left(e))
 
 def interpUnOp(op: UnPrim, v: Const): I[Const] = (op, v) match
-  case (UnPrim.CharToInt, Const.Ch(c)) => Right(Const.Int(c.intValue))
+  case (UnPrim.CharToInt, Const.Ch(c)) => pure(Const.Int(c.intValue))
 
-  case (UnPrim.IntToChar, Const.Int(i)) => Right(Const.Ch(i.toChar))
+  case (UnPrim.IntToChar, Const.Int(i)) => pure(Const.Ch(i.toChar))
 
-  case (UnPrim.IsZero, c) => Right(Const.Bool(c == Const.Int(0)))
+  case (UnPrim.IsZero, c) => pure(Const.Bool(c == Const.Int(0)))
 
-  case (UnPrim.IsUnit, c) => Right(Const.Bool(c == Const.Unit))
+  case (UnPrim.IsUnit, c) => pure(Const.Bool(c == Const.Unit))
 
-  case (UnPrim.Not, Const.Bool(false)) => Right(Const.Bool(true))
-  case (UnPrim.Not, _)                 => Right(Const.Bool(false))
+  case (UnPrim.Not, Const.Bool(false)) => pure(Const.Bool(true))
+  case (UnPrim.Not, _)                 => pure(Const.Bool(false))
 
-  case (UnPrim.IsInt, Const.Int(_)) => Right(Const.Bool(true))
-  case (UnPrim.IsInt, _)            => Right(Const.Bool(false))
+  case (UnPrim.IsInt, Const.Int(_)) => pure(Const.Bool(true))
+  case (UnPrim.IsInt, _)            => pure(Const.Bool(false))
 
-  case (UnPrim.IsBool, Const.Bool(_)) => Right(Const.Bool(true))
-  case (UnPrim.IsBool, _)             => Right(Const.Bool(false))
+  case (UnPrim.IsBool, Const.Bool(_)) => pure(Const.Bool(true))
+  case (UnPrim.IsBool, _)             => pure(Const.Bool(false))
 
-  case (UnPrim.IsChar, Const.Ch(_)) => Right(Const.Bool(true))
-  case (UnPrim.IsChar, _)           => Right(Const.Bool(false))
+  case (UnPrim.IsChar, Const.Ch(_)) => pure(Const.Bool(true))
+  case (UnPrim.IsChar, _)           => pure(Const.Bool(false))
 
-  case (UnPrim.Neg, Const.Int(i)) => Right(Const.Int(-i))
+  case (UnPrim.Neg, Const.Int(i)) => pure(Const.Int(-i))
 
-  case _ => Left("Type error")
+  case _ => err("Type error")
 
 def interpBinOp(op: BinPrim, v1: Const, v2: Const): I[Const] =
   (op, v1, v2) match
     case (BinPrim.Plus, Const.Int(i1), Const.Int(i2)) =>
-      Right(Const.Int(i1 + i2))
+      pure(Const.Int(i1 + i2))
     case (BinPrim.Minus, Const.Int(i1), Const.Int(i2)) =>
-      Right(Const.Int(i1 - i2))
+      pure(Const.Int(i1 - i2))
     case (BinPrim.Times, Const.Int(i1), Const.Int(i2)) =>
-      Right(Const.Int(i1 * i2))
+      pure(Const.Int(i1 * i2))
     case (BinPrim.Div, Const.Int(i1), Const.Int(i2)) =>
-      Right(Const.Int(i1 / i2))
+      pure(Const.Int(i1 / i2))
     case (BinPrim.Eq, _, _) =>
-      Right(Const.Bool(v1 == v2))
-    case _ => Left("Type error")
+      pure(Const.Bool(v1 == v2))
+    case _ => err("Type error")
 
 def interpLet(
-    globals: Env,
-    locals: Env,
     bindings: List[(Name, Exp)],
     body: Exp
 ): I[Const] =
   bindings match
     case (name, exp) :: bs =>
       for {
-        v <- interpExp(globals, locals, exp)
-        res <- interpLet(globals, locals + (name -> Binding.Variable(v)), bs, body)
+        v <- interpExp(exp)
+        res <- interpLet(bs, body).local[Env](_.extendLocal(name, v))
       } yield res
-    case Nil => interpExp(globals, locals, body)
+    case Nil => interpExp(body)
 
 def interpApp(
-    globals: Env,
-    locals: Env,
     formals: List[Name],
     args: List[Exp],
     body: Exp
 ): I[Const] = {
 
-  def go(newLocals: Env, params: List[(Name, Exp)]): I[Const] = {
+  def go(newLocals: Map[Name, Binding], params: List[(Name, Exp)]): I[Const] = {
     params match
       case (name, exp) :: ps =>
         for {
-          v <- interpExp(globals, locals, exp)
+          v <- interpExp(exp)
           res <- go(newLocals + (name -> Binding.Variable(v)), ps)
         } yield res
-      case Nil =>
-        interpExp(globals, newLocals, body)
+      case Nil => interpExp(body).local(_.copy(locals = newLocals))
   }
 
   if formals.length != args.length
-  then Left("Wrong number of arguments")
+  then err("Wrong number of arguments")
   else go(Map.empty, formals.zip(args))
-
 }
 
-def interpExp(globals: Env, locals: Env, e: Exp): I[Const] = e match
+def interpExp(e: Exp): I[Const] = e match
   case Exp.Var(x) =>
-    (globals ++ locals).get(x) match
-      case Some(Binding.Variable(c)) => Right(c)
-      case _                         => Left(s"Unbound variable $x")
+    lookup(x).flatMap {
+      case Some(Binding.Variable(c)) => pure(c)
+      case _                         => err(s"Unbound variable $x")
+    }
 
-  case Exp.CExp(c) => Right(c)
+  case Exp.CExp(c) => pure(c)
   case Exp.UnOp(primOp, e) =>
-    interpExp(globals, locals, e).flatMap(interpUnOp(primOp, _))
+    interpExp(e).flatMap(interpUnOp(primOp, _))
   case Exp.BinOp(primOp, e1, e2) =>
     for {
-      v1 <- interpExp(globals, locals, e1)
-      v2 <- interpExp(globals, locals, e2)
+      v1 <- interpExp(e1)
+      v2 <- interpExp(e2)
       res <- interpBinOp(primOp, v1, v2)
     } yield res
 
   case Exp.If(test, thenB, elseB) =>
     for {
-      t <- interpExp(globals, locals, test)
+      t <- interpExp(test)
       conseq <- t match
-        case Const.Bool(false) => interpExp(globals, locals, elseB)
-        case _                 => interpExp(globals, locals, thenB)
+        case Const.Bool(false) => interpExp(elseB)
+        case _                 => interpExp(thenB)
     } yield conseq
 
-  case Exp.Let(bindings, body) => interpLet(globals, locals, bindings, body)
+  case Exp.Let(bindings, body) => interpLet(bindings, body)
 
   case Exp.App(lvar, args) =>
-    ((globals ++ locals).get(lvar), args) match
-      case (Some(Binding.Function(formals, body)), _) =>
-        interpApp(globals, locals, formals, args, body)
-      case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
-        interpExp(globals, locals, f(e))
-      case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>
-        interpExp(globals, locals, f(e1, e2))
-      case _ => Left(s"Unknown function $lvar")
+    lookup(lvar).flatMap {
+      (_, args) match {
+        case (Some(Binding.Function(formals, body)), _) =>
+          interpApp(formals, args, body)
+        case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
+          interpExp(f(e))
+        case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>
+          interpExp(f(e1, e2))
+        case _ => err(s"Unknown function $lvar")
+      }
+    }
 
-def interpProgram(p: Program): I[Const] = {
+val baseEnv: Map[Name, Binding] =
+  builtins.map((k, v) => k -> Binding.Toplevel(v))
 
-  val funs: Env =
+def interpProgram(p: Program): Either[Error, Const] = {
+
+  val funs: Map[Name, Binding] =
     p.funs.map(fd => fd.name -> Binding.Function(fd.formals, fd.body)).toMap
 
-  interpExp(baseEnv ++ funs, Map.empty, p.body)
+  val env: Env = Env(baseEnv ++ funs, Map.empty)
+
+  interpExp(p.body).run(env)
 }

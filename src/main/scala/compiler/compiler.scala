@@ -211,7 +211,7 @@ def compileApp(
 
   } yield argsCode ++ List(
     s"    addq $$${stackIdx + wordSize}, %rsp", // Adjust stack pointer to be above local variables
-    s"    call $label",
+    s"    callq $label",
     s"    addq $$${-(stackIdx + wordSize)}, %rsp" // Readjust
   )
 
