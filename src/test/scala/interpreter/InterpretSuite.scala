@@ -6,6 +6,8 @@ import syntax.*
 class InterpretSuite extends munit.FunSuite {
 
   def int(i: Long): Const = Const.Int(i)
+  def vTrue: Const = Const.Bool(true)
+  def vFalse: Const = Const.Bool(false)
 
   def check(p: Exp, expected: Const): Unit = {
     assertEquals(
@@ -25,8 +27,8 @@ class InterpretSuite extends munit.FunSuite {
 
     Seq(
       "123" -> int(123),
-      "true" -> Const.True,
-      "false" -> Const.False,
+      "true" -> vTrue,
+      "false" -> vFalse,
       "()" -> Const.Unit,
       "let x = 10 in x" -> int(10),
       "fun f(x) = x in f(10)" -> int(10),
@@ -81,19 +83,19 @@ class InterpretSuite extends munit.FunSuite {
 
   test("test") {
     Seq(
-      "is_zero(65)" -> Const.False,
-      "is_zero(0)" -> Const.True,
-      "is_unit(0)" -> Const.False,
-      "is_unit(())" -> Const.True,
-      "is_unit(true)" -> Const.False,
-      "is_char('b')" -> Const.True,
-      "is_char(0)" -> Const.False,
-      "is_char(())" -> Const.False,
-      "is_int(1234)" -> Const.True,
-      "is_int(())" -> Const.False,
-      "is_int(0)" -> Const.True,
-      "is_int(false)" -> Const.False,
-      "is_int('b')" -> Const.False
+      "is_zero(65)" -> vFalse,
+      "is_zero(0)" -> vTrue,
+      "is_unit(0)" -> vFalse,
+      "is_unit(())" -> vTrue,
+      "is_unit(true)" -> vFalse,
+      "is_char('b')" -> vTrue,
+      "is_char(0)" -> vFalse,
+      "is_char(())" -> vFalse,
+      "is_int(1234)" -> vTrue,
+      "is_int(())" -> vFalse,
+      "is_int(0)" -> vTrue,
+      "is_int(false)" -> vFalse,
+      "is_int('b')" -> vFalse
     ).foreach(check.tupled)
   }
 
@@ -109,7 +111,7 @@ class InterpretSuite extends munit.FunSuite {
          | in y""".stripMargin('|') -> int(24)
     ).foreach(check.tupled)
 
-    check(Exp.Let(List(), Exp.CExp(Const.True)), Const.True)
+    check(Exp.Let(List(), Exp.CExp(vTrue)), vTrue)
   }
   test("if") {
     Seq(
@@ -148,11 +150,11 @@ class InterpretSuite extends munit.FunSuite {
 
   test("cmp") {
     Seq(
-      "1 == 3" -> Const.False,
-      "42 == 42" -> Const.True,
-      "true == true" -> Const.True,
-      "true == false" -> Const.False,
-      "1 == ()" -> Const.False
+      "1 == 3" -> vFalse,
+      "42 == 42" -> vTrue,
+      "true == true" -> vTrue,
+      "true == false" -> vFalse,
+      "1 == ()" -> vFalse
     ).foreach(check.tupled)
   }
 

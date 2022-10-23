@@ -2,7 +2,6 @@ package parser
 
 import cats.parse.Rfc5234.{alpha, char, digit}
 import cats.parse.{Numbers, Parser => P, Parser0}
-import cats.syntax.all.*
 import syntax.*
 
 /*
@@ -29,8 +28,8 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     .between(token(P.char('(')), token(P.char(')')))).map(Exp.App.apply)
 
   val base =
-    keyword("false").as(Exp.CExp(Const.False)).backtrack
-      | keyword("true").as(Exp.CExp(Const.True)).backtrack
+    keyword("false").as(Exp.CExp(Const.Bool(false))).backtrack
+      | keyword("true").as(Exp.CExp(Const.Bool(true))).backtrack
       | app.backtrack | token(identifier).map(Exp.Var.apply)
       | token(
         Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt)))

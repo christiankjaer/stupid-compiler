@@ -1,6 +1,5 @@
 package interpreter
 
-import cats.syntax.all.*
 import syntax.*
 
 type Error = String
@@ -24,24 +23,21 @@ def interpUnOp(op: UnPrim, v: Const): I[Const] = (op, v) match
 
   case (UnPrim.IntToChar, Const.Int(i)) => Right(Const.Ch(i.toChar))
 
-  case (UnPrim.IsZero, Const.Int(n)) if n == 0 => Right(Const.True)
-  case (UnPrim.IsZero, _)                      => Right(Const.False)
+  case (UnPrim.IsZero, c) => Right(Const.Bool(c == Const.Int(0)))
 
-  case (UnPrim.IsUnit, Const.Unit) => Right(Const.True)
-  case (UnPrim.IsUnit, _)          => Right(Const.False)
+  case (UnPrim.IsUnit, c) => Right(Const.Bool(c == Const.Unit))
 
-  case (UnPrim.Not, Const.False) => Right(Const.True)
-  case (UnPrim.Not, _)           => Right(Const.False)
+  case (UnPrim.Not, Const.Bool(false)) => Right(Const.Bool(true))
+  case (UnPrim.Not, _)                 => Right(Const.Bool(false))
 
-  case (UnPrim.IsInt, Const.Int(_)) => Right(Const.True)
-  case (UnPrim.IsInt, _)            => Right(Const.False)
+  case (UnPrim.IsInt, Const.Int(_)) => Right(Const.Bool(true))
+  case (UnPrim.IsInt, _)            => Right(Const.Bool(false))
 
-  case (UnPrim.IsBool, Const.True)  => Right(Const.True)
-  case (UnPrim.IsBool, Const.False) => Right(Const.True)
-  case (UnPrim.IsBool, _)           => Right(Const.False)
+  case (UnPrim.IsBool, Const.Bool(_)) => Right(Const.Bool(true))
+  case (UnPrim.IsBool, _)             => Right(Const.Bool(false))
 
-  case (UnPrim.IsChar, Const.Ch(_)) => Right(Const.True)
-  case (UnPrim.IsChar, _)           => Right(Const.False)
+  case (UnPrim.IsChar, Const.Ch(_)) => Right(Const.Bool(true))
+  case (UnPrim.IsChar, _)           => Right(Const.Bool(false))
 
   case (UnPrim.Neg, Const.Int(i)) => Right(Const.Int(-i))
 
@@ -58,7 +54,7 @@ def interpBinOp(op: BinPrim, v1: Const, v2: Const): I[Const] =
     case (BinPrim.Div, Const.Int(i1), Const.Int(i2)) =>
       Right(Const.Int(i1 / i2))
     case (BinPrim.Eq, _, _) =>
-      Right(if v1 == v2 then Const.True else Const.False)
+      Right(Const.Bool(v1 == v2))
     case _ => Left("Type error")
 
 def interpLet(
@@ -94,7 +90,9 @@ def interpApp(
         interpExp(topDefs, newEnv, body)
   }
 
-  go(Map.empty, formals.zip(args))
+  if formals.length != args.length
+  then Left("Wrong number of arguments")
+  else go(Map.empty, formals.zip(args))
 
 }
 
@@ -118,8 +116,8 @@ def interpExp(topDefs: Env, env: Env, e: Exp): I[Const] = e match
     for {
       t <- interpExp(topDefs, env, test)
       conseq <- t match
-        case Const.False => interpExp(topDefs, env, elseB)
-        case _           => interpExp(topDefs, env, thenB)
+        case Const.Bool(false) => interpExp(topDefs, env, elseB)
+        case _                 => interpExp(topDefs, env, thenB)
     } yield conseq
 
   case Exp.Let(bindings, body) => interpLet(topDefs, env, bindings, body)

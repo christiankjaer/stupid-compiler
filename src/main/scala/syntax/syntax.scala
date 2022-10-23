@@ -12,7 +12,8 @@ enum BinPrim {
 enum Const {
   case Int(n: Long)
   case Ch(n: Char)
-  case True, False, Unit
+  case Bool(b: Boolean)
+  case Unit
 }
 
 enum Exp {

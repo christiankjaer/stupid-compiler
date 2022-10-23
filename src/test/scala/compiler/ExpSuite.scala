@@ -113,7 +113,7 @@ class ExpSuite extends CompilerSuite {
 
     // Test for empty let
     Seq(
-      Exp.Let(List(), Exp.CExp(Const.True)) -> "true\n"
+      Exp.Let(List(), Exp.CExp(Const.Bool(true))) -> "true\n"
     ).foreach(checkOutput.tupled)
   }
 }

@@ -69,11 +69,11 @@ def makeLabel: C[Label] = for {
 } yield s"L_$lab"
 
 def constToImm(c: Const): String = c match
-  case Const.Int(n) => s"$$${n << intShift}"
-  case Const.False  => s"$$${falseVal}"
-  case Const.True   => s"$$${trueVal}"
-  case Const.Unit   => s"$$${unitVal}"
-  case Const.Ch(c)  => s"$$${(c << charShift) | charTag}"
+  case Const.Int(n)      => s"$$${n << intShift}"
+  case Const.Bool(false) => s"$$${falseVal}"
+  case Const.Bool(true)  => s"$$${trueVal}"
+  case Const.Unit        => s"$$${unitVal}"
+  case Const.Ch(c)       => s"$$${(c << charShift) | charTag}"
 
 val setBoolean = List(
   "    sete %al",
@@ -157,7 +157,7 @@ def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): C[List[Instruction]] =
     thenCode <- compileExp(env, stackIdx, ifE.thenB)
     elseCode <- compileExp(env, stackIdx, ifE.elseB)
   } yield testCode ++ List(
-    s"    cmp ${constToImm(Const.False)}, %al",
+    s"    cmp ${constToImm(Const.Bool(false))}, %al",
     s"    je $altLabel # jump to else"
   ) ++ thenCode ++ List(
     s"    jmp $endLabel",
@@ -244,9 +244,7 @@ def compileProgram(p: Program): C[List[Instruction]] = {
     initEnv = baseEnv ++ defs
       .map(x => x.fd.lvar -> Binding.ProgramLabel(x.label))
       .toMap
-    funs <- defs
-      .traverse(td => compileTopDef(initEnv, td))
-      .map(_.flatten)
+    funs <- defs.flatTraverse(td => compileTopDef(initEnv, td))
     bodyCode <- compileExp(initEnv, -wordSize, p.body)
   } yield prelude ++ funs ++ entry ++ bodyCode ++ end
 }

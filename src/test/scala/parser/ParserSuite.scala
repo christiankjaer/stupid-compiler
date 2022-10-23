@@ -2,8 +2,9 @@ package parser
 
 import syntax.*
 
-import Exp.*
 class ParserSuite extends munit.FunSuite {
+
+  import Exp.*
 
   def num(x: Int): Exp = CExp(Const.Int(x))
 
