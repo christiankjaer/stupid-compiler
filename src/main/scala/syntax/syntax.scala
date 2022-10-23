@@ -19,13 +19,13 @@ enum Const {
 enum Exp {
   case Var(x: Name)
   case CExp(c: Const)
-  case UnOp(primOp: UnPrim, e: Exp)
-  case BinOp(primOp: BinPrim, e1: Exp, e2: Exp)
+  case UnOp(prim: UnPrim, e: Exp)
+  case BinOp(prim: BinPrim, e1: Exp, e2: Exp)
   case If(test: Exp, thenB: Exp, elseB: Exp)
   case Let(bindings: List[(Name, Exp)], body: Exp)
-  case App(lvar: Name, args: List[Exp])
+  case App(fun: Name, args: List[Exp])
 }
 
-final case class FunDef(lvar: Name, formals: List[Name], body: Exp)
+final case class FunDef(name: Name, formals: List[Name], body: Exp)
 
 final case class Program(funs: List[FunDef], body: Exp)

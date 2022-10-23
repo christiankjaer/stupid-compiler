@@ -31,12 +31,8 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     keyword("false").as(Exp.CExp(Const.Bool(false))).backtrack
       | keyword("true").as(Exp.CExp(Const.Bool(true))).backtrack
       | app.backtrack | token(identifier).map(Exp.Var.apply)
-      | token(
-        Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt)))
-      )
-      | token(char)
-        .between(P.char('\''), P.char('\''))
-        .map(c => Exp.CExp(Const.Ch(c)))
+      | token(Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt))))
+      | token(char.between(P.char('\''), P.char('\''))).map(c => Exp.CExp(Const.Ch(c)))
       | token(P.string("()")).as(Exp.CExp(Const.Unit))
       | expr.between(token(P.char('(')), token(P.char(')')))
 

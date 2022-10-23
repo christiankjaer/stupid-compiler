@@ -17,7 +17,7 @@ def compileProgram(inputFile: Path, outputFile: Path): Unit = {
   val inputProgram = Source.fromFile(inputFile.toFile()).getLines().mkString
   val compiled = parseProgram
     .parseAll(inputProgram)
-    .leftMap(_ => "Parse error")
+    .leftMap(x => s"Parse error: $x")
     .flatMap(compile) match
     case Right(p) => p
     case Left(e)  => sys.error(e)

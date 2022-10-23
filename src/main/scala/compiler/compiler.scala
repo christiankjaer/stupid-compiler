@@ -141,13 +141,13 @@ def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Eq =>
     s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
 
-def compileBinOp(env: Env, stackIdx: Int, p: Exp.BinOp): C[List[Instruction]] =
+def compileBinOp(env: Env, stackIdx: Int, bin: Exp.BinOp): C[List[Instruction]] =
   for {
-    arg1 <- compileExp(env, stackIdx, p.e1)
-    arg2 <- compileExp(env, stackIdx - wordSize, p.e2)
+    arg1 <- compileExp(env, stackIdx, bin.e1)
+    arg2 <- compileExp(env, stackIdx - wordSize, bin.e2)
   } yield arg1 ++ List(
     s"    movq %rax, ${stackIdx}(%rsp)"
-  ) ++ arg2 ++ compileBinPrim(stackIdx, p.primOp)
+  ) ++ arg2 ++ compileBinPrim(stackIdx, bin.prim)
 
 def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): C[List[Instruction]] =
   for {
@@ -231,7 +231,7 @@ def compileTopDef(
       case Nil => compileExp(env, stackIdx, td.fd.body)
 
   go(env, -wordSize, td.fd.formals)
-    .map(s"${td.label}: # fun ${td.fd.lvar}" :: _ ++ List("    ret"))
+    .map(s"${td.label}: # fun ${td.fd.name}" :: _ ++ List("    ret"))
 }
 
 def compileProgram(p: Program): C[List[Instruction]] = {
@@ -242,7 +242,7 @@ def compileProgram(p: Program): C[List[Instruction]] = {
   for {
     defs <- topDefs
     initEnv = baseEnv ++ defs
-      .map(x => x.fd.lvar -> Binding.ProgramLabel(x.label))
+      .map(x => x.fd.name -> Binding.ProgramLabel(x.label))
       .toMap
     funs <- defs.flatTraverse(td => compileTopDef(initEnv, td))
     bodyCode <- compileExp(initEnv, -wordSize, p.body)

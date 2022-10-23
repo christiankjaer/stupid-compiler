@@ -135,7 +135,7 @@ def interpExp(topDefs: Env, env: Env, e: Exp): I[Const] = e match
 def interpProgram(p: Program): I[Const] = {
 
   val bindings: Env =
-    p.funs.map(fd => fd.lvar -> Binding.Function(fd.formals, fd.body)).toMap
+    p.funs.map(fd => fd.name -> Binding.Function(fd.formals, fd.body)).toMap
 
   interpExp(baseEnv ++ bindings, Map.empty, p.body)
 }
