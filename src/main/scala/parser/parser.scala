@@ -1,11 +1,10 @@
 package parser
 
-import cats.parse.Rfc5234.{alpha, digit}
+import cats.parse.Rfc5234.{alpha, char, digit}
 import cats.parse.{Parser0, Parser => P, Numbers}
 import cats.syntax.all.*
 
 import syntax.*
-import cats.parse.Rfc5234
 
 /*
 
@@ -61,22 +60,24 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     .between(token(P.char('(')), token(P.char(')')))).map(Exp.App.apply)
 
   val base =
-    token(P.string("false")).as(Exp.CExp(Const.False)).backtrack
-      | token(P.string("true")).as(Exp.CExp(Const.True)).backtrack
+    keyword("false").as(Exp.CExp(Const.False)).backtrack
+      | keyword("true").as(Exp.CExp(Const.True)).backtrack
       | app.backtrack | token(identifier).map(Exp.Var.apply)
       | token(
         Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt)))
       )
       | token(romanNumeral.map(x => Exp.CExp(Const.Int(x))))
-      | token(Rfc5234.char)
+      | token(char)
         .between(P.char('\''), P.char('\''))
         .map(c => Exp.CExp(Const.Ch(c)))
       | token(P.string("()")).as(Exp.CExp(Const.Unit))
       | expr.between(token(P.char('(')), token(P.char(')')))
 
   def factor: P[Exp] =
-    (token(P.char('~')) *> P.defer(factor))
-      .map(Exp.UnOp(UnPrim.Neg, _)) | base
+    (token(P.charIn('~', '!')) ~ P.defer(factor)).map {
+      case ('~', e) => Exp.UnOp(UnPrim.Neg, e)
+      case (_, e)   => Exp.UnOp(UnPrim.Not, e)
+    } | base
 
   val plus: P[(Exp, Exp) => Exp] =
     token(P.char('+').as(Exp.BinOp(BinPrim.Plus, _, _)))
@@ -107,22 +108,21 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     case (e1, Some(e2)) => Exp.BinOp(BinPrim.Eq, e1, e2)
   }
 
-  def iff = ((token(P.string("if")) *> expr <* token(
-    P.string("then")
-  )) ~ (expr <* token(P.string("else"))) ~ expr).map { case ((test, th), el) =>
+  def iff = ((keyword("if") *> expr <* keyword("then")) ~
+    (expr <* keyword("else")) ~ expr).map { case ((test, th), el) =>
     Exp.If(test, th, el)
   } | ar
 
-  (token(P.string("let")) *> (token(identifier).soft ~ (token(
+  (keyword("let") *> (token(identifier).soft ~ (token(
     P.char('=')
-  ) *> iff)).rep ~ (token(P.string("in")) *> expr)).map {
-    case (bindings, body) => Exp.Let(bindings.toList, body)
+  ) *> iff)).rep ~ (keyword("in") *> expr)).map { case (bindings, body) =>
+    Exp.Let(bindings.toList, body)
   } | iff
 
 }
 
 val parseFunDef: P[FunDef] =
-  (token(P.string("fun")) *> (token(identifier) ~ token(identifier)
+  (keyword("fun") *> (token(identifier) ~ token(identifier)
     .repSep0(token(P.char(',')))
     .between(P.char('('), P.char(')')))
     ~ (token(P.char('=')) *> parseExp)).map { case ((f, args), body) =>
@@ -130,7 +130,7 @@ val parseFunDef: P[FunDef] =
   }
 
 val parseProgram: P[Program] =
-  (parseFunDef.rep ~ (token(P.string("in")) *> parseExp))
+  (parseFunDef.rep ~ (keyword("in") *> parseExp))
     .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e =>
     Program(List.empty, e)
   )

@@ -78,10 +78,10 @@ def makeLabel: C[Label] = for {
 
 def constToImm(c: Const): String = c match
   case Const.Int(n) => s"$$${n << intShift}"
-  case Const.False     => s"$$${falseVal}"
-  case Const.True      => s"$$${trueVal}"
-  case Const.Unit      => s"$$${unitVal}"
-  case Const.Ch(c)     => s"$$${(c << charShift) | charTag}"
+  case Const.False  => s"$$${falseVal}"
+  case Const.True   => s"$$${trueVal}"
+  case Const.Unit   => s"$$${unitVal}"
+  case Const.Ch(c)  => s"$$${(c << charShift) | charTag}"
 
 val setBoolean = List(
   "    sete %al",
@@ -123,6 +123,8 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
         s"    andq $$${charMask}, %rax",
         s"    cmp $$${charTag}, %rax"
       ) ++ setBoolean
+    case UnPrim.Not =>
+      s"    cmpq $$${falseVal}, %rax" :: setBoolean
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
@@ -144,7 +146,6 @@ def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
       s"    idivq ${stackIdx}(%rsp), %rax",
       s"    salq $$${intShift}, %rax"
     )
-
   case BinPrim.Eq =>
     s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
 
