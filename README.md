@@ -18,6 +18,16 @@ $ ./add
 1379
 ```
 
+## How to make the CI happy
+
+Run scalafix, scalafmt and the test suite
+
+```
+sbt:stupid-compiler> scalafmtAll
+sbt:stupid-compiler> scalafixAll
+sbt:stupid-compiler> test
+```
+
 ## Next steps
 - Heap allocations
 - Closures and lambdas
