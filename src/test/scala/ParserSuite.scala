@@ -37,4 +37,11 @@ class ParserSuite extends munit.FunSuite {
 
   }
 
+  test("fucking romans") {
+    assertEquals(parseExp.parseAll("I"), Right(num(1)))
+    assertEquals(parseExp.parseAll("(XIV)"), Right(num(14)))
+    assertEquals(parseExp.parseAll("f(CMXCIX)"), Right(App("f", List(num(999)))))
+
+  }
+
 }

@@ -23,6 +23,36 @@ in
 
  */
 
+
+val romanNumerals : List[(String,Int)] =
+  List(
+    ("CM", 900),
+    ("M", 1000),
+    ("CD", 400),
+    ("D", 500),
+    ("XC", 90),
+    ("C", 100),
+    ("XL", 40),
+    ("L", 50),
+    ("IX", 9),
+    ("VX", 5),
+    ("X", 10),
+    ("IV", 4),
+    ("V", 5),
+    ("I", 1))
+
+def fromRoman (s : String) : Int =
+  romanNumerals.find((d,_) => s.startsWith(d)) match {
+    case None => 0
+    case Some (d,n) => n + fromRoman(s.drop(d.length))
+  }
+
+val romanLetter: P[Char] =
+  P.charIn("IVXLCDM")
+
+val romanNumeral: P[Int] =
+  romanLetter.rep.void.string.map(s => s).map(fromRoman)
+
 val parseExp: P[Exp] = P.recursive[Exp] { expr =>
 
   val app = (token(identifier) ~ expr
@@ -36,6 +66,7 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
       | token(
         Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt)))
       )
+      | token(romanNumeral.map(x => Exp.CExp(Const.Int(x))))
       | token(char)
         .between(P.char('\''), P.char('\''))
         .map(c => Exp.CExp(Const.Ch(c)))
