@@ -1,4 +1,7 @@
+package compiler
+
 import syntax.*
+
 class ExpSuite extends CompilerSuite {
 
   test("fixnum") {

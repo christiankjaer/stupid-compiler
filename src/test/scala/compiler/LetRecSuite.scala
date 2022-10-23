@@ -1,3 +1,5 @@
+package compiler
+
 import syntax.*
 
 class LetRecSuite extends CompilerSuite {

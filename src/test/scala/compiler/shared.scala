@@ -1,3 +1,5 @@
+package compiler
+
 import sys.process.*
 import java.nio.file.Files
 import java.io.BufferedWriter

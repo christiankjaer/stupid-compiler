@@ -1,4 +1,5 @@
-import parser.*
+package parser
+
 import syntax.*
 import Exp.*
 class ParserSuite extends munit.FunSuite {

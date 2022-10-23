@@ -24,8 +24,7 @@ val boolTag = 0x2f
 enum Binding {
   case StackPos(i: Int)
   case ProgramLabel(l: Label)
-  case UnaryBuiltin(f: Exp => Exp)
-  case BinaryBuiltin(f: (Exp, Exp) => Exp)
+  case BIn(b: Builtin)
 }
 
 type Instruction = String
@@ -61,15 +60,8 @@ val end = List(
   "    ret"
 )
 
-val baseEnv: Map[Name, Binding] = Map(
-  "is_zero" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsZero, e)),
-  "is_unit" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsUnit, e)),
-  "is_int" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsInt, e)),
-  "is_bool" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsBool, e)),
-  "is_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IsChar, e)),
-  "int_to_char" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.IntToChar, e)),
-  "char_to_int" -> Binding.UnaryBuiltin(e => Exp.UnOp(UnPrim.CharToInt, e))
-)
+val baseEnv: Map[Name, Binding] =
+  builtins.mapValues(Binding.BIn.apply).toMap
 
 def makeLabel: C[Label] = for {
   lab <- EitherT.liftF(State.get)
@@ -257,7 +249,6 @@ def compileProgram(p: Program): C[List[Instruction]] = {
       .map(_.flatten)
     bodyCode <- compileExp(initEnv, -wordSize, p.body)
   } yield prelude ++ funs ++ entry ++ bodyCode ++ end
-
 }
 
 def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
@@ -271,9 +262,9 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
     (env.get(lvar), args) match {
       case (Some(Binding.ProgramLabel(l)), _) =>
         compileApp(env, stackIdx, l, args)
-      case (Some(Binding.UnaryBuiltin(f)), List(e)) =>
+      case (Some(Binding.BIn(Builtin.Unary(f))), List(e)) =>
         compileExp(env, stackIdx, f(e))
-      case (Some(Binding.BinaryBuiltin(f)), List(e1, e2)) =>
+      case (Some(Binding.BIn(Builtin.Binary(f))), List(e1, e2)) =>
         compileExp(env, stackIdx, f(e1, e2))
       case (_, _) => error("Unbound function")
     }
