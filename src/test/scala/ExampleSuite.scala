@@ -1,9 +1,9 @@
-import java.io.File
-import scala.io.Source
-
-import parser.*
 import compiler.*
 import interpreter.*
+import parser.*
+
+import java.io.File
+import scala.io.Source
 
 class ExampleSuite extends munit.FunSuite {
 
