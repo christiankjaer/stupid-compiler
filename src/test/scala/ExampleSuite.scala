@@ -11,12 +11,15 @@ class ExampleSuite extends munit.FunSuite {
     case Left(value)  => fail(s"expected right, was $value, $hint")
     case Right(value) => value
 
-  test("parse and compile examples") {
+  val f = File("./examples")
 
-    val f = File("./examples")
-    val examples = f.listFiles { (dir, name) => !name.endsWith(".no-compile") && !name.endsWith(".no-parse") }.toList
+  val positiveExamples = f.listFiles { (dir, name) =>
+    !name.endsWith(".no-compile") && !name.endsWith(".no-parse")
+  }.toList
 
-    examples.foreach { example =>
+  positiveExamples.foreach { example =>
+    test(example.getPath) {
+
       val inputProgram = Source.fromFile(example).getLines().mkString
       val parsed = assertRight(parseProgram.parseAll(inputProgram), s"parsing ${example.getPath}")
       val compiled = assertRight(compile(parsed), s"compiling ${example.getPath}")
@@ -24,23 +27,19 @@ class ExampleSuite extends munit.FunSuite {
     }
   }
 
-  test("should not parse") {
+  val noParse = f.listFiles { (dir, name) => name.endsWith(".no-parse") }.toList
 
-    val f = File("./examples")
-    val examples = f.listFiles{ (dir, name) => name.endsWith(".no-parse") }.toList
-
-    examples.foreach { example =>
+  noParse.foreach { example =>
+    test(example.getPath) {
       val inputProgram = Source.fromFile(example).getLines().mkString
       val parsed = assert(parseProgram.parseAll(inputProgram).isLeft, "${example.getPath} parsed but shouldn't")
     }
   }
 
-  test("should not compile/interpret") {
+  val noCompile = f.listFiles { (dir, name) => name.endsWith(".no-compile") }.toList
 
-    val f = File("./examples")
-    val examples = f.listFiles{ (dir, name) => name.endsWith(".no-compile") }.toList
-
-    examples.foreach { example =>
+  noCompile.foreach { example =>
+    test(example.getPath) {
       val inputProgram = Source.fromFile(example).getLines().mkString
       val parsed = assertRight(parseProgram.parseAll(inputProgram), s"parsing ${example.getPath}")
       val compiled = assert(compile(parsed).isLeft, s"${example.getPath} compiled but shouldn't")
