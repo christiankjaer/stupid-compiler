@@ -1,2 +1,3 @@
+# Check the arity of functions
 fun f() = 10
 in f(10)

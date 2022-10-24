@@ -76,9 +76,8 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     Exp.If(test, th, el)
   } | ar
 
-  (keyword("let") *> (token(identifier).soft ~ (token(
-    P.char('=')
-  ) *> iff)).rep ~ (keyword("in") *> expr)).map { case (bindings, body) =>
+  (keyword("let") *> (token(identifier).soft ~ (token(P.char('=')) *> iff)).rep ~
+    (keyword("in") *> expr)).map { case (bindings, body) =>
     Exp.Let(bindings.toList, body)
   } | iff
 
@@ -87,11 +86,11 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
 val parseFunDef: P[FunDef] =
   (keyword("fun") *> (token(identifier) ~ token(identifier)
     .repSep0(token(P.char(',')))
-    .between(P.char('('), P.char(')')))
+    .between(token(P.char('(')), token(P.char(')'))))
     ~ (token(P.char('=')) *> parseExp)).map { case ((f, args), body) =>
     FunDef(f, args, body)
   }
 
 val parseProgram: P[Program] =
-  (parseFunDef.rep ~ (keyword("in") *> parseExp))
-    .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e => Program(List.empty, e))
+  whitespace.with1 *> ((parseFunDef.rep ~ (keyword("in") *> parseExp))
+    .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e => Program(List.empty, e)))

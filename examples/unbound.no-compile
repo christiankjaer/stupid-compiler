@@ -1,1 +1,2 @@
+# y is not bound
 fun f(x) = y in f(10)

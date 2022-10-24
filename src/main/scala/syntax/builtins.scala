@@ -1,6 +1,7 @@
 package syntax
 
 enum Builtin {
+  case Zeroary(e: Exp)
   case Unary(f: Exp => Exp)
   case Binary(f: (Exp, Exp) => Exp)
 }

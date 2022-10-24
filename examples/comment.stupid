@@ -1,0 +1,4 @@
+# we can have comments everywhere
+fun foo(x) = x + 3 # comment
+# comment
+in foo(1234) # comment

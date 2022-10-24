@@ -1,3 +1,4 @@
+# The stupid language is very dynamic
 fun dyn(x) =
     if is_char(x)
     then 1

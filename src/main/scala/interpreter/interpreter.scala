@@ -67,10 +67,7 @@ def interpBinOp(op: BinPrim, v1: Const, v2: Const): I[Const] =
       pure(Const.Bool(v1 == v2))
     case _ => err("Type error")
 
-def interpLet(
-    bindings: List[(Name, Exp)],
-    body: Exp
-): I[Const] =
+def interpLet(bindings: List[(Name, Exp)], body: Exp): I[Const] =
   bindings match
     case (name, exp) :: bs =>
       for {
@@ -79,11 +76,7 @@ def interpLet(
       } yield res
     case Nil => interpExp(body)
 
-def interpApp(
-    formals: List[Name],
-    args: List[Exp],
-    body: Exp
-): I[Const] = {
+def interpApp(formals: List[Name], args: List[Exp], body: Exp): I[Const] = {
 
   def go(newLocals: Map[Name, Binding], params: List[(Name, Exp)]): I[Const] = {
     params match
@@ -132,6 +125,8 @@ def interpExp(e: Exp): I[Const] = e match
       (_, args) match {
         case (Some(Binding.Function(formals, body)), _) =>
           interpApp(formals, args, body)
+        case (Some(Binding.Toplevel(Builtin.Zeroary(e))), Nil) =>
+          interpExp(e)
         case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
           interpExp(f(e))
         case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>

@@ -260,6 +260,8 @@ def compileExp(env: Env, stackIdx: Int, e: Exp): C[List[Instruction]] = e match
     (env.get(lvar), args) match {
       case (Some(Binding.ProgramLabel(l, arity)), args) if args.length == arity =>
         compileApp(env, stackIdx, l, args)
+      case (Some(Binding.Toplevel(Builtin.Zeroary(e))), Nil) =>
+        compileExp(env, stackIdx, e)
       case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
         compileExp(env, stackIdx, f(e))
       case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>

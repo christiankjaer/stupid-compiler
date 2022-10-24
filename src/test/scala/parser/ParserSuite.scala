@@ -7,6 +7,26 @@ class ParserSuite extends munit.FunSuite {
   import Exp.*
 
   def num(x: Int): Exp = CExp(Const.Int(x))
+  def n(x: Int): Program = Program(List.empty, num(x))
+
+  test("comment") {
+
+    assert(
+      parseProgram
+        .parseAll("""|# comment
+                     |fun foo(x) = x + 3
+                     |in foo(1234)""".stripMargin)
+        .isRight
+    )
+
+    assertEquals(
+      parseProgram.parseAll("""|# comment
+           |fun foo() = 10
+           |in foo() # comment""".stripMargin),
+      parseProgram.parseAll("fun foo() = 10 in foo()")
+    )
+
+  }
 
   test("fucking plus") {
 

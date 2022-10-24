@@ -2,8 +2,13 @@ package parser
 
 import cats.parse.{Parser => P, Parser0 => P0}
 
+val comment: P[Unit] =
+  P.char('#') *> P.until0(P.char('\n')).void
+
+val whitespace: P0[Unit] = (P.charIn(" \t\n").void | comment).rep0.void
+
 def token[T](p: P[T]): P[T] =
-  p.surroundedBy(P.charIn(" \t\n").rep0)
+  p <* whitespace
 
 val identifier: P[String] =
   (P.charIn('a' to 'z') *>

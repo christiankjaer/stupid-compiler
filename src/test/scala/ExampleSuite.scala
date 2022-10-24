@@ -20,7 +20,7 @@ class ExampleSuite extends munit.FunSuite {
   positiveExamples.foreach { example =>
     test(example.getPath) {
 
-      val inputProgram = Source.fromFile(example).getLines().mkString
+      val inputProgram = Source.fromFile(example).getLines().mkString("\n")
       val parsed = assertRight(parseProgram.parseAll(inputProgram), s"parsing ${example.getPath}")
       val compiled = assertRight(compile(parsed), s"compiling ${example.getPath}")
       val interpreted = assertRight(interpProgram(parsed), s"interpreting ${example.getPath}")
@@ -31,7 +31,7 @@ class ExampleSuite extends munit.FunSuite {
 
   noParse.foreach { example =>
     test(example.getPath) {
-      val inputProgram = Source.fromFile(example).getLines().mkString
+      val inputProgram = Source.fromFile(example).getLines().mkString("\n")
       val parsed = assert(parseProgram.parseAll(inputProgram).isLeft, "${example.getPath} parsed but shouldn't")
     }
   }
@@ -40,7 +40,7 @@ class ExampleSuite extends munit.FunSuite {
 
   noCompile.foreach { example =>
     test(example.getPath) {
-      val inputProgram = Source.fromFile(example).getLines().mkString
+      val inputProgram = Source.fromFile(example).getLines().mkString("\n")
       val parsed = assertRight(parseProgram.parseAll(inputProgram), s"parsing ${example.getPath}")
       val compiled = assert(compile(parsed).isLeft, s"${example.getPath} compiled but shouldn't")
       val interpreted = assert(interpProgram(parsed).isLeft, s"interpreted ${example.getPath} but shouldn't")
