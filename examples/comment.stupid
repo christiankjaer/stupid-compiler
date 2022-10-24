@@ -1,3 +1,4 @@
+# output: 1237
 # we can have comments everywhere
 fun foo(x) = x + 3 # comment
 # comment

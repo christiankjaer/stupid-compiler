@@ -1,11 +1,18 @@
 import compiler.*
 import interpreter.*
 import parser.*
+import syntax.Const
 
 import java.io.File
 import scala.io.Source
 
-class ExampleSuite extends munit.FunSuite {
+class ExampleSuite extends compiler.CompilerSuite {
+
+  def constToString(c: Const): String = c match
+    case Const.Int(n)  => n.toString
+    case Const.Ch(n)   => c.toString
+    case Const.Bool(b) => b.toString
+    case Const.Unit    => "()"
 
   def assertRight[A, B](x: Either[A, B], hint: String): B = x match
     case Left(value)  => fail(s"expected right, was $value, $hint")
@@ -17,13 +24,17 @@ class ExampleSuite extends munit.FunSuite {
     !name.endsWith(".no-compile") && !name.endsWith(".no-parse")
   }.toList
 
+  val expectedRegex = "# output: (.*)".r
+
   positiveExamples.foreach { example =>
     test(example.getPath) {
 
       val inputProgram = Source.fromFile(example).getLines().mkString("\n")
+      val expectedRegex(output) = inputProgram.linesIterator.toList.head: @unchecked
       val parsed = assertRight(parseProgram.parseAll(inputProgram), s"parsing ${example.getPath}")
-      val compiled = assertRight(compile(parsed), s"compiling ${example.getPath}")
-      val interpreted = assertRight(interpProgram(parsed), s"interpreting ${example.getPath}")
+
+      checkOutput(inputProgram, s"$output\n")
+      assertEquals(interpProgram(parsed).map(constToString), Right(output))
     }
   }
 

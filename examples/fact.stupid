@@ -1,3 +1,4 @@
+# output: 3628800
 # Classic computer science problem
 fun fact(n) =
     if n == 0
