@@ -1,4 +1,8 @@
 # output: 111
 # Simple recursive add function
-fun add(x, y) = if is_zero(y) then x else add(x + 1, y - 1)
+fun add(x, y) =
+  if is_zero(y)
+  then x
+  else add(x + 1, y - 1)
+
 in add(42, 69)

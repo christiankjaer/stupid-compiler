@@ -4,22 +4,12 @@ import cats.parse.Rfc5234.{alpha, char, digit}
 import cats.parse.{Numbers, Parser => P, Parser0}
 import syntax.*
 
-/*
-
-Syntax:
-
-program :
-
-fun f(x, y, x) = exp
-fun g() = exp
-
-in
-  let x = if foo then 1 else 9
-      y = bar
-      z = baz
-  in x + y + z
-
- */
+val parseConst: P[Const] =
+  keyword("false").as(Const.Bool(false))
+    | keyword("true").as(Const.Bool(true))
+    | token(P.string("()")).as(Const.Unit)
+    | token(Numbers.signedIntString.map(x => Const.Int(x.toInt)))
+    | token(char.between(P.char('\''), P.char('\''))).map(c => Const.Ch(c))
 
 val parseExp: P[Exp] = P.recursive[Exp] { expr =>
 
@@ -27,14 +17,10 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     .repSep0(token(P.char(',')))
     .between(token(P.char('(')), token(P.char(')')))).map(Exp.App.apply)
 
-  val base =
-    keyword("false").as(Exp.CExp(Const.Bool(false))).backtrack
-      | keyword("true").as(Exp.CExp(Const.Bool(true))).backtrack
-      | app.backtrack | token(identifier).map(Exp.Var.apply)
-      | token(Numbers.signedIntString.map(x => Exp.CExp(Const.Int(x.toInt))))
-      | token(char.between(P.char('\''), P.char('\''))).map(c => Exp.CExp(Const.Ch(c)))
-      | token(P.string("()")).as(Exp.CExp(Const.Unit))
-      | expr.between(token(P.char('(')), token(P.char(')')))
+  val base = parseConst.map(Exp.CExp.apply).backtrack
+    | app.backtrack
+    | token(identifier).map(Exp.Var.apply)
+    | expr.between(token(P.char('(')), token(P.char(')')))
 
   def factor: P[Exp] =
     (token(P.charIn('~', '!')) ~ P.defer(factor)).map {
@@ -80,17 +66,4 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
     (keyword("in") *> expr)).map { case (bindings, body) =>
     Exp.Let(bindings.toList, body)
   } | iff
-
 }
-
-val parseFunDef: P[FunDef] =
-  (keyword("fun") *> (token(identifier) ~ token(identifier)
-    .repSep0(token(P.char(',')))
-    .between(token(P.char('(')), token(P.char(')'))))
-    ~ (token(P.char('=')) *> parseExp)).map { case ((f, args), body) =>
-    FunDef(f, args, body)
-  }
-
-val parseProgram: P[Program] =
-  whitespace.with1 *> ((parseFunDef.rep ~ (keyword("in") *> parseExp))
-    .map { case (defs, body) => Program(defs.toList, body) } | parseExp.map(e => Program(List.empty, e)))

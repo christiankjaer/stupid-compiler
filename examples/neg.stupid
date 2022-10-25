@@ -1,0 +1,3 @@
+# output: 15
+let x = ~(5 + 10)
+in ~x

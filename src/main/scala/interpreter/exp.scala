@@ -3,32 +3,7 @@ package interpreter
 import cats.data.Kleisli
 import syntax.*
 
-type Error = String
-
-final case class Env(globals: Map[Name, Binding], locals: Map[Name, Binding]) {
-  def extendLocal(name: Name, v: Const): Env =
-    copy(locals = locals + (name -> Binding.Variable(v)))
-}
-
-// Interpreter monad
-type I[T] = Kleisli[Either[Error, *], Env, T]
-
-enum Binding {
-  case Variable(c: Const)
-  case Function(formals: List[Name], body: Exp)
-  case Toplevel(b: Builtin)
-}
-
-def lookup(n: Name): I[Option[Binding]] =
-  Kleisli.ask.map(env => env.locals.get(n) orElse env.globals.get(n))
-
-def pure[T](a: T): I[T] =
-  Kleisli.pure(a)
-
-def err[T](e: Error): I[T] =
-  Kleisli.liftF(Left(e))
-
-def interpUnOp(op: UnPrim, v: Const): I[Const] = (op, v) match
+def interpUnOp(op: UnPrim, v: Const): Interp[Const] = (op, v) match
   case (UnPrim.CharToInt, Const.Ch(c)) => pure(Const.Int(c.intValue))
 
   case (UnPrim.IntToChar, Const.Int(i)) => pure(Const.Ch(i.toChar))
@@ -53,7 +28,7 @@ def interpUnOp(op: UnPrim, v: Const): I[Const] = (op, v) match
 
   case _ => err("Type error")
 
-def interpBinOp(op: BinPrim, v1: Const, v2: Const): I[Const] =
+def interpBinOp(op: BinPrim, v1: Const, v2: Const): Interp[Const] =
   (op, v1, v2) match
     case (BinPrim.Plus, Const.Int(i1), Const.Int(i2)) =>
       pure(Const.Int(i1 + i2))
@@ -67,7 +42,7 @@ def interpBinOp(op: BinPrim, v1: Const, v2: Const): I[Const] =
       pure(Const.Bool(v1 == v2))
     case _ => err("Type error")
 
-def interpLet(bindings: List[(Name, Exp)], body: Exp): I[Const] =
+def interpLet(bindings: List[(Name, Exp)], body: Exp): Interp[Const] =
   bindings match
     case (name, exp) :: bs =>
       for {
@@ -76,9 +51,9 @@ def interpLet(bindings: List[(Name, Exp)], body: Exp): I[Const] =
       } yield res
     case Nil => interpExp(body)
 
-def interpApp(formals: List[Name], args: List[Exp], body: Exp): I[Const] = {
+def interpApp(formals: List[Name], args: List[Exp], body: Exp): Interp[Const] = {
 
-  def go(newLocals: Map[Name, Binding], params: List[(Name, Exp)]): I[Const] = {
+  def go(newLocals: Map[Name, Binding], params: List[(Name, Exp)]): Interp[Const] = {
     params match
       case (name, exp) :: ps =>
         for {
@@ -93,7 +68,7 @@ def interpApp(formals: List[Name], args: List[Exp], body: Exp): I[Const] = {
   else go(Map.empty, formals.zip(args))
 }
 
-def interpExp(e: Exp): I[Const] = e match
+def interpExp(e: Exp): Interp[Const] = e match
   case Exp.Var(x) =>
     lookup(x).flatMap {
       case Some(Binding.Variable(c)) => pure(c)
@@ -134,16 +109,3 @@ def interpExp(e: Exp): I[Const] = e match
         case _ => err(s"Unknown function $lvar")
       }
     }
-
-val baseEnv: Map[Name, Binding] =
-  builtins.map((k, v) => k -> Binding.Toplevel(v))
-
-def interpProgram(p: Program): Either[Error, Const] = {
-
-  val funs: Map[Name, Binding] =
-    p.funs.map(fd => fd.name -> Binding.Function(fd.formals, fd.body)).toMap
-
-  val env: Env = Env(baseEnv ++ funs, Map.empty)
-
-  interpExp(p.body).run(env)
-}
