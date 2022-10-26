@@ -154,7 +154,7 @@ def compileApp(
 
 def compileExp(env: Env, stackIdx: Int, e: Exp): Compile[List[Instruction]] = e match
   case Exp.Var(x)        => EitherT.fromEither(compileVar(env, x))
-  case Exp.CExp(c)       => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
+  case Exp.C(c)          => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
   case ifE: Exp.If       => compileIf(env, stackIdx, ifE)
   case Exp.UnOp(p, e)    => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
   case binop: Exp.BinOp  => compileBinOp(env, stackIdx, binop)

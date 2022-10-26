@@ -18,7 +18,7 @@ enum Const {
 
 enum Exp {
   case Var(x: Name)
-  case CExp(c: Const)
+  case C(c: Const)
   case UnOp(prim: UnPrim, e: Exp)
   case BinOp(prim: BinPrim, e1: Exp, e2: Exp)
   case If(test: Exp, thenB: Exp, elseB: Exp)

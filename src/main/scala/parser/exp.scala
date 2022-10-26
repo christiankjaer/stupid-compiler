@@ -23,7 +23,7 @@ val parseExp: P[Exp] = P.recursive[Exp] { expr =>
 
   val app = (token(identifier) ~ parens(expr.repSep0(token(P.char(','))))).map(Exp.App.apply)
 
-  val base = parseConst.map(Exp.CExp.apply).backtrack
+  val base = parseConst.map(Exp.C.apply).backtrack
     | app.backtrack
     | token(identifier).map(Exp.Var.apply)
     | parens(expr)

@@ -111,7 +111,7 @@ class InterpretSuite extends munit.FunSuite {
          | in y""".stripMargin('|') -> int(24)
     ).foreach(check.tupled)
 
-    check(Exp.Let(List(), Exp.CExp(vTrue)), vTrue)
+    check(Exp.Let(List(), Exp.C(vTrue)), vTrue)
   }
   test("if") {
     Seq(

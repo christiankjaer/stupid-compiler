@@ -75,7 +75,7 @@ def interpExp(e: Exp): Interp[Const] = e match
       case _                         => err(s"Unbound variable $x")
     }
 
-  case Exp.CExp(c) => pure(c)
+  case Exp.C(c) => pure(c)
   case Exp.UnOp(primOp, e) =>
     interpExp(e).flatMap(interpUnOp(primOp, _))
   case Exp.BinOp(primOp, e1, e2) =>
