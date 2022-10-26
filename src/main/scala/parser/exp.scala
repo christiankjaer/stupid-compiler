@@ -8,8 +8,8 @@ val parseConst: P[Const] =
   keyword("false").as(Const.Bool(false))
     | keyword("true").as(Const.Bool(true))
     | token(P.string("()")).as(Const.Unit)
-    | token(Numbers.signedIntString.map(x => Const.Int(x.toInt)))
-    | token(char.between(P.char('\''), P.char('\''))).map(c => Const.Ch(c))
+    | token(Numbers.signedIntString).map(x => Const.Int(x.toInt))
+    | token(char.between(P.char('\''), P.char('\''))).map(Const.Ch.apply)
 
 private val neg: P[UnPrim] = token(P.char('~')).as(UnPrim.Neg)
 private val not: P[UnPrim] = token(P.char('!')).as(UnPrim.Not)
