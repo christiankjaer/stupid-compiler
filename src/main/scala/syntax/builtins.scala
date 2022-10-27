@@ -7,6 +7,7 @@ enum Builtin {
 }
 
 val builtins: Map[Name, Builtin] = Map(
+  "print" -> Builtin.Unary(e => Exp.UnOp(UnPrim.Print, e)),
   "is_zero" -> Builtin.Unary(e => Exp.UnOp(UnPrim.IsZero, e)),
   "is_unit" -> Builtin.Unary(e => Exp.UnOp(UnPrim.IsUnit, e)),
   "is_int" -> Builtin.Unary(e => Exp.UnOp(UnPrim.IsInt, e)),

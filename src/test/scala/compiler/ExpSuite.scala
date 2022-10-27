@@ -99,6 +99,10 @@ class ExpSuite extends CompilerSuite {
 
   }
 
+  test("print") {
+    checkOutput("print(10)", "10\n10\n")
+  }
+
   test("let") {
 
     Seq(

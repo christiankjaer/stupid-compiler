@@ -26,6 +26,8 @@ def interpUnOp(op: UnPrim, v: Const): Interp[Const] = (op, v) match
 
   case (UnPrim.Neg, Const.Int(i)) => pure(Const.Int(-i))
 
+  case (UnPrim.Print, v) => println(constToString(v)) ; pure(Const.Unit)
+
   case _ => err("Type error")
 
 def interpBinOp(op: BinPrim, v1: Const, v2: Const): Interp[Const] =

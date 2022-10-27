@@ -1,18 +1,12 @@
 import compiler.*
 import interpreter.*
 import parser.*
-import syntax.Const
+import syntax.*
 
 import java.io.File
 import scala.io.Source
 
 class ExampleSuite extends compiler.CompilerSuite {
-
-  def constToString(c: Const): String = c match
-    case Const.Int(n)  => n.toString
-    case Const.Ch(n)   => c.toString
-    case Const.Bool(b) => b.toString
-    case Const.Unit    => "()"
 
   def assertRight[A, B](x: Either[A, B], hint: String): B = x match
     case Left(value)  => fail(s"expected right, was $value, $hint")

@@ -4,7 +4,7 @@ type Name = String
 
 enum UnPrim {
   case CharToInt, IntToChar, IsZero, IsUnit, Not, IsInt,
-    IsBool, IsChar, Neg
+    IsBool, IsChar, Neg, Print
 }
 enum BinPrim {
   case Plus, Minus, Times, Div, Eq
@@ -15,6 +15,12 @@ enum Const {
   case Bool(b: Boolean)
   case Unit
 }
+def constToString(c: Const): String = c match
+  case Const.Int(n)  => n.toString
+  case Const.Ch(n)   => c.toString
+  case Const.Bool(b) => b.toString
+  case Const.Unit    => "()"
+
 
 enum Exp {
   case Var(x: Name)

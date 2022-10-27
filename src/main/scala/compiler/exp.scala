@@ -53,6 +53,13 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
       ) ++ setBoolean
     case UnPrim.Not =>
       s"    cmpq $$${falseVal}, %rax" :: setBoolean
+    case UnPrim.Print =>
+      List(
+        "    movq %rax, %rdi",
+      s"    addq $$${-wordSize - wordSize}, %rsp",
+        "    callq print_const",
+      s"    addq $$${wordSize}, %rsp"
+      )
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
