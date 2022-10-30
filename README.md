@@ -29,6 +29,11 @@ sbt:stupid-compiler> test
 ```
 
 ## Next steps
+- Explore various optimizations
+    * Constant folding
+    * Peephole optimizations
+    * Tail call optimization
+    * Inlining
 - Heap allocations
 - Closures and lambdas
 - Type system
