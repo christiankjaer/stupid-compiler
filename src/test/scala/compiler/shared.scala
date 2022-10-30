@@ -1,6 +1,7 @@
 package compiler
 
 import compiler.*
+import parser.SourceLocation
 import syntax.*
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -24,14 +25,14 @@ abstract class CompilerSuite extends munit.FunSuite {
     cmd.!!
   }
 
-  def checkOutput(e: Exp, expected: String): Unit = {
+  def checkOutput(e: Exp[SourceLocation], expected: String): Unit = {
     assertEquals(
       compile(Program(List.empty, e)).map(getOutput),
       Right(expected)
     )
   }
 
-  def checkOutput(p: Program, expected: String): Unit = {
+  def checkOutput(p: Program[SourceLocation], expected: String): Unit = {
     assertEquals(
       compile(p).map(getOutput),
       Right(expected)

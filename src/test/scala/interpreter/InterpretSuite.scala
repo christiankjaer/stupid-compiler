@@ -9,7 +9,7 @@ class InterpretSuite extends munit.FunSuite {
   def vTrue: Const = Const.Bool(true)
   def vFalse: Const = Const.Bool(false)
 
-  def check(p: Exp, expected: Const): Unit = {
+  def check(p: Exp[SourceLocation], expected: Const): Unit = {
     assertEquals(
       interpProgram(Program(List.empty, p)),
       Right(expected)
@@ -111,7 +111,7 @@ class InterpretSuite extends munit.FunSuite {
          | in y""".stripMargin('|') -> int(24)
     ).foreach(check.tupled)
 
-    check(Exp.Let(List(), Exp.C(vTrue)), vTrue)
+    check(Exp.Let(List(), Exp.C(vTrue, SourceLocation.start), SourceLocation.start), vTrue)
   }
   test("if") {
     Seq(

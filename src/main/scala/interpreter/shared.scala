@@ -1,9 +1,10 @@
 package interpreter
 
 import cats.data.Kleisli
+import parser.SourceLocation
 import syntax.*
 
-type Error = String
+final case class Error(msg: String, loc: SourceLocation)
 
 final case class Env(globals: Map[Name, Binding], locals: Map[Name, Binding]) {
   def extendLocal(name: Name, v: Const): Env =
@@ -15,8 +16,8 @@ type Interp[T] = Kleisli[Either[Error, *], Env, T]
 
 enum Binding {
   case Variable(c: Const)
-  case Function(formals: List[Name], body: Exp)
-  case Toplevel(b: Builtin)
+  case Function(formals: List[Name], body: LExp)
+  case Toplevel(b: Builtin[SourceLocation])
 }
 
 def lookup(n: Name): Interp[Option[Binding]] =
@@ -25,5 +26,5 @@ def lookup(n: Name): Interp[Option[Binding]] =
 def pure[T](a: T): Interp[T] =
   Kleisli.pure(a)
 
-def err[T](e: Error): Interp[T] =
-  Kleisli.liftF(Left(e))
+def err[T](msg: String, loc: SourceLocation): Interp[T] =
+  Kleisli.liftF(Left(Error(msg, loc)))

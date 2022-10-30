@@ -1,5 +1,6 @@
 package compiler
 
+import parser.SourceLocation
 import syntax.*
 
 class ExpSuite extends CompilerSuite {
@@ -113,7 +114,7 @@ class ExpSuite extends CompilerSuite {
 
     // Test for empty let
     Seq(
-      Exp.Let(List(), Exp.C(Const.Bool(true))) -> "true\n"
+      Exp.Let(List(), Exp.C(Const.Bool(true), SourceLocation.start), SourceLocation.start) -> "true\n"
     ).foreach(checkOutput.tupled)
   }
 }

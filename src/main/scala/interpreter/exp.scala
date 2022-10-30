@@ -1,9 +1,12 @@
 package interpreter
 
 import cats.data.Kleisli
+import parser.SourceLocation
 import syntax.*
 
-def interpUnOp(op: UnPrim, v: Const): Interp[Const] = (op, v) match
+type LExp = Exp[SourceLocation]
+
+def interpUnOp(op: UnPrim, v: Const, loc: SourceLocation): Interp[Const] = (op, v) match
   case (UnPrim.CharToInt, Const.Ch(c)) => pure(Const.Int(c.intValue))
 
   case (UnPrim.IntToChar, Const.Int(i)) => pure(Const.Ch(i.toChar))
@@ -26,9 +29,9 @@ def interpUnOp(op: UnPrim, v: Const): Interp[Const] = (op, v) match
 
   case (UnPrim.Neg, Const.Int(i)) => pure(Const.Int(-i))
 
-  case _ => err("Type error")
+  case _ => err("Type error", loc)
 
-def interpBinOp(op: BinPrim, v1: Const, v2: Const): Interp[Const] =
+def interpBinOp(op: BinPrim, v1: Const, v2: Const, loc: SourceLocation): Interp[Const] =
   (op, v1, v2) match
     case (BinPrim.Plus, Const.Int(i1), Const.Int(i2)) =>
       pure(Const.Int(i1 + i2))
@@ -40,9 +43,9 @@ def interpBinOp(op: BinPrim, v1: Const, v2: Const): Interp[Const] =
       pure(Const.Int(i1 / i2))
     case (BinPrim.Eq, _, _) =>
       pure(Const.Bool(v1 == v2))
-    case _ => err("Type error")
+    case _ => err("Type error", loc)
 
-def interpLet(bindings: List[(Name, Exp)], body: Exp): Interp[Const] =
+def interpLet(bindings: List[(Name, LExp)], body: LExp): Interp[Const] =
   bindings match
     case (name, exp) :: bs =>
       for {
@@ -51,9 +54,9 @@ def interpLet(bindings: List[(Name, Exp)], body: Exp): Interp[Const] =
       } yield res
     case Nil => interpExp(body)
 
-def interpApp(formals: List[Name], args: List[Exp], body: Exp): Interp[Const] = {
+def interpApp(formals: List[Name], args: List[LExp], body: LExp, loc: SourceLocation): Interp[Const] = {
 
-  def go(newLocals: Map[Name, Binding], params: List[(Name, Exp)]): Interp[Const] = {
+  def go(newLocals: Map[Name, Binding], params: List[(Name, LExp)]): Interp[Const] = {
     params match
       case (name, exp) :: ps =>
         for {
@@ -64,28 +67,28 @@ def interpApp(formals: List[Name], args: List[Exp], body: Exp): Interp[Const] = 
   }
 
   if formals.length != args.length
-  then err("Wrong number of arguments")
+  then err("Wrong number of arguments", loc)
   else go(Map.empty, formals.zip(args))
 }
 
-def interpExp(e: Exp): Interp[Const] = e match
-  case Exp.Var(x) =>
+def interpExp(e: LExp): Interp[Const] = e match
+  case Exp.Var(x, loc) =>
     lookup(x).flatMap {
       case Some(Binding.Variable(c)) => pure(c)
-      case _                         => err(s"Unbound variable $x")
+      case _                         => err(s"Unbound variable $x", loc)
     }
 
-  case Exp.C(c) => pure(c)
-  case Exp.UnOp(primOp, e) =>
-    interpExp(e).flatMap(interpUnOp(primOp, _))
-  case Exp.BinOp(primOp, e1, e2) =>
+  case Exp.C(c, _) => pure(c)
+  case Exp.UnOp(primOp, e, loc) =>
+    interpExp(e).flatMap(interpUnOp(primOp, _, loc))
+  case Exp.BinOp(primOp, e1, e2, loc) =>
     for {
       v1 <- interpExp(e1)
       v2 <- interpExp(e2)
-      res <- interpBinOp(primOp, v1, v2)
+      res <- interpBinOp(primOp, v1, v2, loc)
     } yield res
 
-  case Exp.If(test, thenB, elseB) =>
+  case Exp.If(test, thenB, elseB, _) =>
     for {
       t <- interpExp(test)
       conseq <- t match
@@ -93,19 +96,19 @@ def interpExp(e: Exp): Interp[Const] = e match
         case _                 => interpExp(thenB)
     } yield conseq
 
-  case Exp.Let(bindings, body) => interpLet(bindings, body)
+  case Exp.Let(bindings, body, _) => interpLet(bindings, body)
 
-  case Exp.App(lvar, args) =>
+  case Exp.App(lvar, args, ann) =>
     lookup(lvar).flatMap {
       (_, args) match {
         case (Some(Binding.Function(formals, body)), _) =>
-          interpApp(formals, args, body)
-        case (Some(Binding.Toplevel(Builtin.Zeroary(e))), Nil) =>
-          interpExp(e)
+          interpApp(formals, args, body, ann)
+        case (Some(Binding.Toplevel(Builtin.Zeroary(f))), Nil) =>
+          interpExp(f(ann))
         case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
-          interpExp(f(e))
+          interpExp(f(e, ann))
         case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>
-          interpExp(f(e1, e2))
-        case _ => err(s"Unknown function $lvar")
+          interpExp(f(e1, e2, ann))
+        case _ => err(s"Unknown function $lvar", ann)
       }
     }

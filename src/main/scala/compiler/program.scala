@@ -2,10 +2,11 @@ package compiler
 
 import cats.data.{EitherT, State}
 import cats.syntax.all.*
+import parser.SourceLocation
 import syntax.*
 
 val baseEnv: Map[Name, Binding] =
-  builtins.map((k, v) => k -> Binding.Toplevel(v))
+  builtins[SourceLocation].map((k, v) => k -> Binding.Toplevel(v))
 
 val prelude =
   List(
@@ -25,7 +26,7 @@ val end = List(
   "    ret"
 )
 
-final case class TopDef(label: Label, fd: FunDef)
+final case class TopDef(label: Label, fd: FunDef[SourceLocation])
 
 def compileTopDef(
     env: Env,
@@ -42,7 +43,7 @@ def compileTopDef(
     .map(s"${td.label}: # fun ${td.fd.name}" :: _ ++ List("    ret"))
 }
 
-def compileProgram(p: Program): Compile[List[Instruction]] = {
+def compileProgram(p: Program[SourceLocation]): Compile[List[Instruction]] = {
 
   val topDefs = p.funs.traverse(f => makeLabel.map(l => TopDef(l, f)))
 
@@ -56,5 +57,5 @@ def compileProgram(p: Program): Compile[List[Instruction]] = {
   } yield prelude ++ funs ++ entry ++ bodyCode ++ end
 }
 
-def compile(p: Program): Either[Error, String] =
+def compile(p: Program[SourceLocation]): Either[Error, String] =
   compileProgram(p).value.runA(0).value.map(_.mkString("\n"))

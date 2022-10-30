@@ -14,13 +14,13 @@ val name = Opts.argument[Path](metavar = "name")
 
 def compileProgram(inputFile: Path, outputFile: Path): Unit = {
 
-  val inputProgram = Source.fromFile(inputFile.toFile()).getLines().mkString
+  val inputProgram = Source.fromFile(inputFile.toFile()).getLines().mkString("\n")
   val compiled = parseProgram
     .parseAll(inputProgram)
     .leftMap(x => s"Parse error: $x")
     .flatMap(compile) match
     case Right(p) => p
-    case Left(e)  => sys.error(e)
+    case Left(e)  => sys.error(e.toString)
 
   val p = Files.createTempFile("program", ".s")
   val file = p.toFile()

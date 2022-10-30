@@ -2,7 +2,10 @@ package compiler
 
 import cats.data.{EitherT, State}
 import cats.syntax.all.*
+import parser.SourceLocation
 import syntax.*
+
+type LExp = Exp[SourceLocation]
 
 def constToImm(c: Const): String = c match
   case Const.Int(n)      => s"$$${n << intShift}"
@@ -77,7 +80,7 @@ def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Eq =>
     s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
 
-def compileBinOp(env: Env, stackIdx: Int, bin: Exp.BinOp): Compile[List[Instruction]] =
+def compileBinOp(env: Env, stackIdx: Int, bin: Exp.BinOp[SourceLocation]): Compile[List[Instruction]] =
   for {
     arg1 <- compileExp(env, stackIdx, bin.e1)
     arg2 <- compileExp(env, stackIdx - wordSize, bin.e2)
@@ -85,7 +88,7 @@ def compileBinOp(env: Env, stackIdx: Int, bin: Exp.BinOp): Compile[List[Instruct
     s"    movq %rax, ${stackIdx}(%rsp)"
   ) ++ arg2 ++ compileBinPrim(stackIdx, bin.prim)
 
-def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): Compile[List[Instruction]] =
+def compileIf(env: Env, stackIdx: Int, ifE: Exp.If[SourceLocation]): Compile[List[Instruction]] =
   for {
     altLabel <- makeLabel
     endLabel <- makeLabel
@@ -101,17 +104,17 @@ def compileIf(env: Env, stackIdx: Int, ifE: Exp.If): Compile[List[Instruction]] 
   ) ++ elseCode
     ++ List(s"$endLabel: # end of if")
 
-def compileVar(env: Env, x: Name): Either[Error, List[Instruction]] =
+def compileVar(env: Env, x: Name, loc: SourceLocation): Either[Error, List[Instruction]] =
   env.get(x) match
     case Some(Binding.StackPos(idx)) =>
       Right(List(s"    movq ${idx}(%rsp), %rax"))
-    case _ => Left(s"Unknown variable '$x'")
+    case _ => Left(Error(s"Unknown variable '$x'", loc))
 
 def compileLet(
     env: Env,
     stackIdx: Int,
-    bindings: List[(Name, Exp)],
-    body: Exp
+    bindings: List[(Name, LExp)],
+    body: LExp
 ): Compile[List[Instruction]] = bindings match
   case Nil => compileExp(env, stackIdx, body)
   case (x, e) :: bs =>
@@ -129,10 +132,10 @@ def compileApp(
     env: Env,
     stackIdx: Int,
     label: Label,
-    args: List[Exp]
+    args: List[LExp]
 ): Compile[List[Instruction]] = {
 
-  def compileArgs(stackIdx: Int, args: List[Exp]): Compile[List[Instruction]] =
+  def compileArgs(stackIdx: Int, args: List[LExp]): Compile[List[Instruction]] =
     args match
       case head :: next =>
         for {
@@ -152,22 +155,22 @@ def compileApp(
   )
 }
 
-def compileExp(env: Env, stackIdx: Int, e: Exp): Compile[List[Instruction]] = e match
-  case Exp.Var(x)        => EitherT.fromEither(compileVar(env, x))
-  case Exp.C(c)          => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
-  case ifE: Exp.If       => compileIf(env, stackIdx, ifE)
-  case Exp.UnOp(p, e)    => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
-  case binop: Exp.BinOp  => compileBinOp(env, stackIdx, binop)
-  case Exp.Let(xs, body) => compileLet(env, stackIdx, xs, body)
-  case Exp.App(lvar, args) =>
+def compileExp(env: Env, stackIdx: Int, e: LExp): Compile[List[Instruction]] = e match
+  case Exp.Var(x, ann)                  => EitherT.fromEither(compileVar(env, x, ann))
+  case Exp.C(c, _)                      => EitherT.pure(List(s"    movq ${constToImm(c)}, %rax"))
+  case ifE: Exp.If[SourceLocation]      => compileIf(env, stackIdx, ifE)
+  case Exp.UnOp(p, e, _)                => compileExp(env, stackIdx, e).map(_ ++ compileUnPrim(p))
+  case binop: Exp.BinOp[SourceLocation] => compileBinOp(env, stackIdx, binop)
+  case Exp.Let(xs, body, _)             => compileLet(env, stackIdx, xs, body)
+  case Exp.App(lvar, args, ann) =>
     (env.get(lvar), args) match {
       case (Some(Binding.ProgramLabel(l, arity)), args) if args.length == arity =>
         compileApp(env, stackIdx, l, args)
-      case (Some(Binding.Toplevel(Builtin.Zeroary(e))), Nil) =>
-        compileExp(env, stackIdx, e)
+      case (Some(Binding.Toplevel(Builtin.Zeroary(f))), Nil) =>
+        compileExp(env, stackIdx, f(ann))
       case (Some(Binding.Toplevel(Builtin.Unary(f))), List(e)) =>
-        compileExp(env, stackIdx, f(e))
+        compileExp(env, stackIdx, f(e, ann))
       case (Some(Binding.Toplevel(Builtin.Binary(f))), List(e1, e2)) =>
-        compileExp(env, stackIdx, f(e1, e2))
-      case (_, _) => error("Unbound function")
+        compileExp(env, stackIdx, f(e1, e2, ann))
+      case (_, _) => error("Unbound function", ann)
     }
