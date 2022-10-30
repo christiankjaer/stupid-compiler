@@ -19,6 +19,10 @@ private val times: P[BinPrim] = token(P.char('*')).as(BinPrim.Times)
 private val minus: P[BinPrim] = token(P.char('-')).as(BinPrim.Minus)
 private val div: P[BinPrim] = token(P.char('/')).as(BinPrim.Div)
 private val eq: P[BinPrim] = token(P.string("==")).as(BinPrim.Eq)
+private val le: P[BinPrim] = token(P.string("<=")).as(BinPrim.Le)
+private val lt: P[BinPrim] = token(P.char('<')).as(BinPrim.Lt)
+private val ge: P[BinPrim] = token(P.string(">=")).as(BinPrim.Ge)
+private val gt: P[BinPrim] = token(P.char('>')).as(BinPrim.Gt)
 
 type LExp = Exp[SourceLocation]
 
@@ -52,7 +56,9 @@ val parseExp: P[LExp] = P.recursive[LExp] { expr =>
 
   def arith: P[LExp] = (term ~ arith1).map { case (a, f) => f(a) }
 
-  def ar = arith ~ (eq ~ arith).? map {
+  val cmp = eq | le.backtrack | lt | ge.backtrack | gt
+
+  def ar = arith ~ (cmp ~ arith).? map {
     case (e1, None)           => e1
     case (e1, Some((op, e2))) => Exp.BinOp(op, e1, e2, e1.ann |+| e2.ann)
   }

@@ -7,7 +7,7 @@ enum UnPrim {
     IsBool, IsChar, Neg
 }
 enum BinPrim {
-  case Plus, Minus, Times, Div, Eq
+  case Plus, Minus, Times, Div, Eq, Lt, Le, Gt, Ge
 }
 enum Const {
   case Int(n: Long)

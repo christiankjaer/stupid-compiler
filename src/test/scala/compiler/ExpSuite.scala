@@ -95,7 +95,15 @@ class ExpSuite extends CompilerSuite {
       "42 == 42" -> "true\n",
       "true == true" -> "true\n",
       "true == false" -> "false\n",
-      "1 == ()" -> "false\n"
+      "1 == ()" -> "false\n",
+      "1 <= 1" -> "true\n",
+      "1 < 1" -> "false\n",
+      "1 < 2" -> "true\n",
+      "-1 < 0" -> "true\n",
+      "-1 > 0" -> "false\n",
+      "1 > -1" -> "true\n",
+      "-3 < -1" -> "true\n",
+      "-3 > -1" -> "false\n"
     ).foreach(checkOutput.tupled)
 
   }

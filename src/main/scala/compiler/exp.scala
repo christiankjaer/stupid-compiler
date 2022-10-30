@@ -14,8 +14,8 @@ def constToImm(c: Const): String = c match
   case Const.Unit        => s"$$${unitVal}"
   case Const.Ch(c)       => s"$$${(c << charShift) | charTag}"
 
-val setBoolean = List(
-  "    sete %al",
+def setBoolean(instruction: String) = List(
+  s"    ${instruction} %al",
   "    movzbq %al, %rax",
   s"    salq $$${boolShift}, %rax",
   s"    orq $$${boolTag}, %rax"
@@ -36,26 +36,26 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
         s"    orq $$${charTag}, %rax"
       )
     case UnPrim.IsZero =>
-      "    cmp $0, %rax" :: setBoolean
+      "    cmp $0, %rax" :: setBoolean("sete")
     case UnPrim.IsUnit =>
-      s"    cmp $$${unitVal}, %rax" :: setBoolean
+      s"    cmp $$${unitVal}, %rax" :: setBoolean("sete")
     case UnPrim.IsBool =>
       List(
         s"    and $$${boolMask}, %rax",
         s"    cmp $$${boolTag}, %rax"
-      ) ++ setBoolean
+      ) ++ setBoolean("sete")
     case UnPrim.IsInt =>
       List(
         s"    andq $$${intMask}, %rax",
         s"    cmp $$${intTag}, %rax"
-      ) ++ setBoolean
+      ) ++ setBoolean("sete")
     case UnPrim.IsChar =>
       List(
         s"    andq $$${charMask}, %rax",
         s"    cmp $$${charTag}, %rax"
-      ) ++ setBoolean
+      ) ++ setBoolean("sete")
     case UnPrim.Not =>
-      s"    cmpq $$${falseVal}, %rax" :: setBoolean
+      s"    cmpq $$${falseVal}, %rax" :: setBoolean("sete")
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
@@ -78,7 +78,15 @@ def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
       s"    salq $$${intShift}, %rax"
     )
   case BinPrim.Eq =>
-    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("sete")
+  case BinPrim.Le =>
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("setge")
+  case BinPrim.Lt =>
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("setg")
+  case BinPrim.Ge =>
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("setle")
+  case BinPrim.Gt =>
+    s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("setl")
 
 def compileBinOp(env: Env, stackIdx: Int, bin: Exp.BinOp[SourceLocation]): Compile[List[Instruction]] =
   for {

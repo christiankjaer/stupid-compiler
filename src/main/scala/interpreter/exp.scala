@@ -41,6 +41,14 @@ def interpBinOp(op: BinPrim, v1: Const, v2: Const, loc: SourceLocation): Interp[
       pure(Const.Int(i1 * i2))
     case (BinPrim.Div, Const.Int(i1), Const.Int(i2)) =>
       pure(Const.Int(i1 / i2))
+    case (BinPrim.Le, Const.Int(i1), Const.Int(i2)) =>
+      pure(Const.Bool(i1 <= i2))
+    case (BinPrim.Lt, Const.Int(i1), Const.Int(i2)) =>
+      pure(Const.Bool(i1 < i2))
+    case (BinPrim.Gt, Const.Int(i1), Const.Int(i2)) =>
+      pure(Const.Bool(i1 > i2))
+    case (BinPrim.Ge, Const.Int(i1), Const.Int(i2)) =>
+      pure(Const.Bool(i1 >= i2))
     case (BinPrim.Eq, _, _) =>
       pure(Const.Bool(v1 == v2))
     case _ => err("Type error", loc)
