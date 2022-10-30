@@ -43,7 +43,8 @@ class ExampleSuite extends compiler.CompilerSuite {
   noParse.foreach { example =>
     test(example.getPath) {
       val inputProgram = Source.fromFile(example).getLines().mkString("\n")
-      val parsed = assert(parseProgram.parseAll(inputProgram).isLeft, "${example.getPath} parsed but shouldn't")
+      val parsed =
+        assert(parseProgram.parseAll(inputProgram).isLeft, s"${example.getPath} parsed but shouldn't")
     }
   }
 
