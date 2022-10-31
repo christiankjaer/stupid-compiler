@@ -37,3 +37,4 @@ sbt:stupid-compiler> test
 - Heap allocations
 - Closures and lambdas
 - Type system
+- Algebraic data types and pattern matching
