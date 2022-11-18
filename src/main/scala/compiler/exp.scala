@@ -8,7 +8,7 @@ import syntax.*
 type LExp = Exp[SourceLocation]
 
 def constToImm(c: Const): String = c match
-  case Const.Int(n)      => s"$$${n << intShift}"
+  case Const.Int(n)      => s"$$${(n << intShift) | intTag}"
   case Const.Bool(false) => s"$$${falseVal}"
   case Const.Bool(true)  => s"$$${trueVal}"
   case Const.Unit        => s"$$${unitVal}"
@@ -25,8 +25,10 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
   p match
     case UnPrim.Neg =>
       List(
+        s"    sarq $$${intShift}, %rax",
         "    negq %rax",
-        "    and $0xFC, %al"
+        s"    salq $$${intShift}, %rax",
+        s"    orq $$${intTag}, %rax"
       )
     case UnPrim.CharToInt =>
       List(s"    sarq $$${charShift - intShift}, %rax")
@@ -36,7 +38,7 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
         s"    orq $$${charTag}, %rax"
       )
     case UnPrim.IsZero =>
-      "    cmp $0, %rax" :: setBoolean("sete")
+      s"    cmp ${constToImm(Const.Int(0))}, %rax" :: setBoolean("sete")
     case UnPrim.IsUnit =>
       s"    cmp $$${unitVal}, %rax" :: setBoolean("sete")
     case UnPrim.IsBool =>
@@ -59,23 +61,37 @@ def compileUnPrim(p: UnPrim): List[Instruction] =
 
 def compileBinPrim(stackIdx: Int, p: BinPrim): List[Instruction] = p match
   case BinPrim.Plus =>
-    List(s"    addq ${stackIdx}(%rsp), %rax")
+    List(
+      s"    addq ${stackIdx}(%rsp), %rax",
+      "    decq %rax"
+    )
   case BinPrim.Minus =>
     List(
       s"    xchgq ${stackIdx}(%rsp), %rax", // There is definitely a better way
-      s"    subq ${stackIdx}(%rsp), %rax"
+      s"    subq ${stackIdx}(%rsp), %rax",
+      "    incq %rax"
     )
   case BinPrim.Times =>
+    // I need to use %rbx as a scratch register.
     List(
       s"    sarq $$${intShift}, %rax",
-      s"    imulq ${stackIdx}(%rsp), %rax"
+      s"    movq ${stackIdx}(%rsp), %rbx",
+      s"    sarq $$${intShift}, %rbx",
+      "    imulq %rbx, %rax",
+      s"    salq $$${intShift}, %rax",
+      s"    orq $$${intMask}, %rax"
     )
   case BinPrim.Div =>
+    // I need to use %rbx as a scratch register.
     List(
-      s"    xchgq ${stackIdx}(%rsp), %rax", // There is definitely a better way
+      s"    sarq $$${intShift}, %rax",
+      s"    movq ${stackIdx}(%rsp), %rbx",
+      s"    sarq $$${intShift}, %rbx",
+      "    xchgq %rbx, %rax", // There is definitely a better way
       "    cqto",
-      s"    idivq ${stackIdx}(%rsp), %rax",
-      s"    salq $$${intShift}, %rax"
+      "    idivq %rbx, %rax",
+      s"    salq $$${intShift}, %rax",
+      s"    orq $$${intMask}, %rax"
     )
   case BinPrim.Eq =>
     s"    cmpq ${stackIdx}(%rsp), %rax" :: setBoolean("sete")

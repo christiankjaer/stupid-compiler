@@ -1,14 +1,14 @@
 const std = @import("std");
 
-const bool_f = 0x2f;
-const bool_t = 0x6f;
-const unit_t = 0x3f;
-const int_mask = 0x03;
-const int_tag = 0x00;
-const int_shift = 2;
-const ch_mask = 0xFF;
-const ch_tag = 0x0F;
-const ch_shift = 8;
+const bool_f = 0x6;
+const bool_t = 0x16;
+const unit_t = 0xE;
+const int_mask = 0x1;
+const int_tag = 0x1;
+const int_shift = 1;
+const ch_mask = 0xF;
+const ch_tag = 0xA;
+const ch_shift = 4;
 
 const stack_size = 4096;
 
