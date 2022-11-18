@@ -31,4 +31,4 @@ def pure[T](a: T): Compile[T] = EitherT.pure(a)
 def makeLabel: Compile[Label] = for {
   lab <- EitherT.liftF(State.get)
   _ <- EitherT.liftF(State.set(lab + 1))
-} yield s"L_$lab"
+} yield s".L$lab"

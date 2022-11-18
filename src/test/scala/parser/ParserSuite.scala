@@ -30,7 +30,36 @@ class ParserSuite extends munit.FunSuite {
 
   }
 
-  test("fucking plus") {
+  test("if") {
+    assertEquals(
+      parseE("if true then 1 else 2"),
+      Right(If(C(Const.Bool(true), ()), C(Const.Int(1), ()), C(Const.Int(2), ()), ()))
+    )
+    assertEquals(
+      parseE("if true then if false then 1 else 2 else 3"),
+      Right(
+        If(
+          C(Const.Bool(true), ()),
+          If(C(Const.Bool(false), ()), C(Const.Int(1), ()), C(Const.Int(2), ()), ()),
+          C(Const.Int(3), ()),
+          ()
+        )
+      )
+    )
+    assertEquals(
+      parseE("if true then 1 else if false then 2 else 3"),
+      Right(
+        If(
+          C(Const.Bool(true), ()),
+          C(Const.Int(1), ()),
+          If(C(Const.Bool(false), ()), C(Const.Int(2), ()), C(Const.Int(3), ()), ()),
+          ()
+        )
+      )
+    )
+  }
+
+  test("arithmetic expressions") {
 
     assertEquals(
       parseE("1 + (2 + 3)"),

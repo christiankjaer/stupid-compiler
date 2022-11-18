@@ -1,7 +1,10 @@
 package parser
 
 import cats.kernel.Semigroup
-import cats.parse.Caret
+import cats.parse.{Caret, Parser}
+
+val comma: Parser[Unit] = token(Parser.char(','))
+val assign: Parser[Unit] = token(Parser.char('='))
 
 final case class SourceLocation(begin: Caret, end: Caret) {}
 object SourceLocation {

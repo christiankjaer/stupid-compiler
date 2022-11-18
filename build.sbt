@@ -1,4 +1,4 @@
-val scala3Version = "3.2.0"
+val scala3Version = "3.2.1"
 
 inThisBuild(
   List(
@@ -20,9 +20,9 @@ lazy val root = project
     ),
     scalaVersion := scala3Version,
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.8.0",
+      "org.typelevel" %% "cats-core" % "2.9.0",
       "org.typelevel" %% "cats-parse" % "0.3.8",
-      "com.monovore" %% "decline" % "2.3.1",
+      "com.monovore" %% "decline" % "2.4.0",
       "org.scalameta" %% "munit" % "0.7.29" % Test
     )
   )

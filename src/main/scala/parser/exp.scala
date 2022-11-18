@@ -28,7 +28,7 @@ type LExp = Exp[SourceLocation]
 
 val parseExp: P[LExp] = P.recursive[LExp] { expr =>
 
-  val app = (P.caret.with1 ~ token(identifier) ~ locParens(expr.repSep0(token(P.char(','))))).map {
+  val app = (P.caret.with1 ~ token(identifier) ~ locParens(expr.repSep0(comma))).map {
     case ((start, id), (_, args, end)) =>
       Exp.App(id, args, end.copy(begin = start))
   }
@@ -47,7 +47,8 @@ val parseExp: P[LExp] = P.recursive[LExp] { expr =>
       (a: LExp) => f(Exp.BinOp(op, a, b, a.ann |+| b.ann))
     } | P.pure((x: LExp) => x)
 
-  def term: P[LExp] = (factor ~ term1).map { case (a, f) => f(a) }
+  def term: P[LExp] =
+    (factor ~ term1).map { case (a, f) => f(a) }
 
   def arith1: Parser0[LExp => LExp] =
     ((plus | minus) ~ term ~ P.defer0(arith1)).map { case ((op, b), f) =>
@@ -68,7 +69,7 @@ val parseExp: P[LExp] = P.recursive[LExp] { expr =>
     Exp.If(test, th, el, start |+| el.ann)
   } | ar
 
-  (locKeyword("let") ~ (token(identifier).soft ~ (token(P.char('=')) *> iff)).rep ~
+  (locKeyword("let") ~ (token(identifier).soft ~ (assign *> iff)).rep ~
     (keyword("in") *> expr)).map { case ((start, bindings), body) =>
     Exp.Let(bindings.toList, body, start |+| body.ann)
   } | iff

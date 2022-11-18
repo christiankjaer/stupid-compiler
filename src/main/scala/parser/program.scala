@@ -5,8 +5,8 @@ import syntax.*
 
 val parseFunDef: P[FunDef[SourceLocation]] =
   (keyword("fun") *>
-    (token(identifier) ~ parens(token(identifier).repSep0(token(P.char(','))))) ~
-    (token(P.char('=')) *> parseExp)).map { case ((f, args), body) =>
+    (token(identifier) ~ parens(token(identifier).repSep0(comma))) ~
+    (assign *> parseExp)).map { case ((f, args), body) =>
     FunDef(f, args, body)
   }
 

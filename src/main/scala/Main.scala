@@ -28,11 +28,10 @@ def compileProgram(inputFile: Path, outputFile: Path): Unit = {
   bw.append(compiled)
   bw.close()
 
-  val cmd = Process(
+  Process(
     Seq("zig", "build", s"-Dentry=${p.toString}"),
     new File("./runtime")
-  )
-  cmd.!
+  ).!
   Process(
     Seq("cp", "./runtime/zig-out/bin/runtime", outputFile.toString)
   ).!
